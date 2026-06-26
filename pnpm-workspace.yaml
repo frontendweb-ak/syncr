@@ -1,0 +1,24 @@
+packages:
+  # Applications
+  - "apps/*"
+
+  # Shared libraries
+  - "packages/*"
+
+  # Internal tooling
+  - "tooling/*"
+
+  # Infrastructure packages (if any become Node packages)
+  - "infra/*"
+
+  # Automation / generators
+  - "scripts/*"
+
+  # Exclude tests
+  - "!**/test/**"
+
+allowBuilds:
+  esbuild: set this to true or false
+
+ignoredBuiltDependencies:
+  - esbuild
