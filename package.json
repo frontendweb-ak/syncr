@@ -3,14 +3,19 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "private": true,
   "scripts": {
-    "turbo": "turbo",
-    "build": "turbo build",
     "dev": "turbo dev",
+    "build": "turbo build",
     "lint": "turbo lint",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
-    "clean": "turbo clean"
+    "clean": "turbo clean",
+    "format": "biome check --write .",
+    "prepare": "husky",
+    "check": "turbo lint && turbo typecheck && turbo test",
+    "format:check": "biome check .",
+    "clean:all": "turbo clean && rm -rf node_modules"
   },
   "keywords": [],
   "author": "frontendweb-sg",

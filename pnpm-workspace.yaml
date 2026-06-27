@@ -9,16 +9,21 @@ packages:
   - "tooling/*"
 
   # Infrastructure packages (if any become Node packages)
-  - "infra/*"
+  # - "infra/*"
 
   # Automation / generators
-  - "scripts/*"
+  # - "scripts/*"
 
   # Exclude tests
   - "!**/test/**"
 
-allowBuilds:
-  esbuild: set this to true or false
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "prisma"
+  - "esbuild"
+  - "sharp"
+  - "unrs-resolver"
 
 ignoredBuiltDependencies:
   - esbuild
