@@ -4,23 +4,25 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc -b",
-    "start": "node dist/index.js",
+    "dev": "tsx watch src/server.ts",
+    "tunnel": "pnpm exec ngrok http --url=azalee-garmentless-serendipitously.ngrok-free.app 4200",
+    "dev:tunnel": "concurrently -k -n API,TUNNEL -c blue,green \"pnpm dev\" \"pnpm tunnel\"",
+    "dev:worker": "wrangler dev",
+    "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "clean": "rimraf dist",
     "lint": "biome check .",
-    "format": "biome check --write ."
+    "lint:fix": "biome check . --write",
+    "format": "biome format . --write",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "deploy": "wrangler deploy",
+    "deploy:preview": "wrangler deploy --env preview"
   },
   "dependencies": {
+    "@syncr/db": "workspace:*",
+    "@syncr/types": "workspace:*",
     "@hono/node-server": "^1.19.5",
-    "hono": "^4.9.7",
-    "@syncr/auth": "workspace:*",
-    "@syncr/config": "workspace:*",
-    "@syncr/core": "workspace:*",
-    "@syncr/database": "workspace:*",
-    "@syncr/github": "workspace:*",
-    "@syncr/logger": "workspace:*"
+    "hono": "^4.9.7"
   },
   "devDependencies": {
     "@types/node": "^26.0.1",

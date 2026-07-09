@@ -6,22 +6,31 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**"]
     },
-
     "dev": {
       "persistent": true,
       "cache": false
     },
-
     "lint": {
       "outputs": []
     },
-
     "typecheck": {
       "outputs": []
     },
-
     "test": {
       "outputs": ["coverage/**"]
+    },
+    "db:generate": { "cache": false },
+    "db:migrate": { "cache": false },
+    "db:seed": { "cache": false },
+    "db:reset": { "cache": false },
+    "db:studio": { "cache": false, "persistent": true },
+    "deploy:preview": {
+      "dependsOn": ["build", "typecheck", "lint"],
+      "cache": false
+    },
+    "deploy": {
+      "dependsOn": ["build", "typecheck", "lint"],
+      "cache": false
     }
   }
 }

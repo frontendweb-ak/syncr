@@ -3,12 +3,5 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "references": [
-    { "path": "packages/core" },
-    { "path": "packages/database" },
-    { "path": "packages/auth" },
-    { "path": "packages/config" },
-    { "path": "apps/api" },
-    { "path": "apps/github-app" }
-  ]
+  "references": [{ "path": "packages/db" }, { "path": "apps/api" }]
 }

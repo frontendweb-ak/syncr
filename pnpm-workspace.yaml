@@ -6,7 +6,7 @@ packages:
   - "packages/*"
 
   # Internal tooling
-  - "tooling/*"
+  # - "tooling/*"
 
   # Infrastructure packages (if any become Node packages)
   # - "infra/*"
@@ -27,3 +27,6 @@ onlyBuiltDependencies:
 
 ignoredBuiltDependencies:
   - esbuild
+
+allowBuilds:
+  esbuild: true

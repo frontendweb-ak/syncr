@@ -8,6 +8,7 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
+    "lint:fix": "biome check --write --unsafe .",
     "test": "turbo test",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean",
