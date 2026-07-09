@@ -7,25 +7,19 @@ export const UserStatus = [
 ] as const;
 export type UserStatus = (typeof UserStatus)[number];
 export const AuthProvider = [
-  "EMAIL",
-  "PHONE",
-  "GOOGLE",
-  "APPLE",
+  "PASSWORD",
   "GITHUB",
+  "GOOGLE",
   "MICROSOFT",
-  "COGNITO",
-  "SUPABASE",
-  "AUTH0",
-  "CLERK",
-  "SSO",
+  "APPLE",
+  "OIDC",
+  "SAML",
+  "PASSKEY",
 ] as const;
 export type AuthProvider = (typeof AuthProvider)[number];
-
 export const MfaType = ["TOTP"] as const;
-
 export const DeviceStatus = ["ACTIVE", "REVOKED", "EXPIRED"] as const;
 export const DeviceType = ["MOBILE", "TABLET", "WEB"] as const;
-
 export const LoginMethod = [
   "PHONE_OTP",
   "EMAIL_OTP",
@@ -34,7 +28,6 @@ export const LoginMethod = [
   "APPLE",
   "SUPABASE",
 ] as const;
-
 export const LoginFailureReason = [
   "INVALID_CREDENTIALS",
   "INVALID_OTP",
@@ -44,7 +37,6 @@ export const LoginFailureReason = [
   "RATE_LIMITED",
   "PROVIDER_ERROR",
 ] as const;
-
 export const VerificationStatus = [
   "PENDING",
   "UNDER_REVIEW",
@@ -52,7 +44,6 @@ export const VerificationStatus = [
   "REJECTED",
   "SUSPENDED", // approved but temporarily disabled
 ] as const;
-
 export const ImpersonationStatus = ["ACTIVE", "ENDED", "EXPIRED"] as const;
 export const SecurityEventType = [
   "NEW_DEVICE_LOGIN",
@@ -70,3 +61,12 @@ export const SecurityEventType = [
   "TOKEN_VERSION_BUMPED",
   "SUSPICIOUS_LOGIN_BLOCKED",
 ] as const;
+export const PasswordResetTokenStatus = [
+  "PENDING",
+  "USED",
+  "EXPIRED",
+  "REVOKED",
+] as const;
+
+export const ApiKeyType = ["PERSONAL", "ORGANIZATION"] as const;
+export const ApiKeyStatus = ["ACTIVE", "REVOKED", "EXPIRED"] as const;

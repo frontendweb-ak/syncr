@@ -1,4 +1,6 @@
 import {
+  ApiKeyStatus,
+  ApiKeyType,
   AuthProvider,
   DeviceStatus,
   DeviceType,
@@ -6,6 +8,7 @@ import {
   LoginFailureReason,
   LoginMethod,
   MfaType,
+  PasswordResetTokenStatus,
   SecurityEventType,
   UserStatus,
   VerificationStatus,
@@ -43,3 +46,12 @@ export const verificationStatusEnum = pgEnum(
   "verification_status",
   VerificationStatus,
 );
+
+export const passwordResetTokenStatusEnum = pgEnum(
+  "password_reset_token_status",
+  PasswordResetTokenStatus,
+);
+
+export const apiKeyTypeEnum = pgEnum("api_key_type", ApiKeyType);
+
+export const apiKeyStatusEnum = pgEnum("api_key_status", ApiKeyStatus);

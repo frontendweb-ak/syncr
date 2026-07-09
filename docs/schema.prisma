@@ -1,0 +1,780 @@
+// =============================================================================
+// Syncr — Production Prisma Schema
+// Database: PostgreSQL (Neon serverless)
+// Version: 1.0.0
+//
+// RULES:
+//   - Every table has id (cuid), createdAt, updatedAt
+//   - Every table that changes has meta Json for forward-compat extensibility
+//   - Audit log is append-only — no update, no delete ever
+//   - Soft deletes on Org, Repo, Component (deletedAt nullable)
+//   - All enums are explicit — no magic strings anywhere
+//   - Indexes on every foreign key + every field used in WHERE clauses
+// =============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum Plan {
+  FREE
+  STARTER    // $49/mo
+  AGENCY     // $199/mo
+  STUDIO     // $499/mo
+  ENTERPRISE // custom
+}
+
+enum OrgRole {
+  OWNER   // full control, billing
+  ADMIN   // manage repos, components, team
+  MEMBER  // push/pull components, view sync PRs
+  VIEWER  // read-only
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED  // payment failed
+  DELETED
+}
+
+enum RepoRole {
+  SOURCE    // design system / component source
+  CONSUMER  // client repo that uses components
+}
+
+enum RepoStatus {
+  ACTIVE
+  ARCHIVED   // GitHub archived — skip scans
+  REMOVED    // unlinked from Syncr
+}
+
+enum ComponentFramework {
+  REACT
+  VUE
+  SVELTE
+  ANGULAR
+  SOLID
+  UNIVERSAL // framework-agnostic (utils, hooks)
+}
+
+enum SyncStatus {
+  PENDING    // detected drift, PR not yet created
+  OPEN       // PR created on GitHub, awaiting merge
+  APPROVED   // approved via Syncr dashboard
+  MERGED     // PR merged on GitHub
+  REJECTED   // closed without merging
+  CONFLICT   // local changes clash — needs manual review
+  SKIPPED    // repo opted out of this component
+}
+
+enum SyncEventType {
+  PROPOSED   // drift detected, proposal created
+  PR_OPENED  // GitHub PR created
+  PR_MERGED  // GitHub PR merged
+  PR_CLOSED  // GitHub PR closed without merge
+  APPROVED   // approved via dashboard
+  REJECTED   // rejected via dashboard
+  CONFLICT   // conflict detected
+  ROLLBACK   // reverted to previous version
+}
+
+enum VulnerabilitySeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+  INFORMATIONAL
+}
+
+enum VulnerabilityStatus {
+  OPEN
+  PATCHED     // patch PR merged
+  DISMISSED   // acknowledged, accepted risk
+  FALSE_POSITIVE
+}
+
+enum ScanStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum WebhookEventType {
+  COMPONENT_PUBLISHED
+  SYNC_PR_OPENED
+  SYNC_PR_MERGED
+  CVE_DETECTED
+  SCAN_COMPLETED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  TRIALING
+  PAUSED
+}
+
+enum AuditAction {
+  // Org
+  ORG_CREATED
+  ORG_UPDATED
+  ORG_DELETED
+  ORG_PLAN_CHANGED
+  // Member
+  MEMBER_INVITED
+  MEMBER_JOINED
+  MEMBER_ROLE_CHANGED
+  MEMBER_REMOVED
+  // Repo
+  REPO_CONNECTED
+  REPO_DISCONNECTED
+  REPO_ROLE_CHANGED
+  REPO_SCANNED
+  // Component
+  COMPONENT_CREATED
+  COMPONENT_PUBLISHED
+  COMPONENT_DEPRECATED
+  COMPONENT_DELETED
+  // Sync
+  SYNC_PROPOSED
+  SYNC_APPROVED
+  SYNC_REJECTED
+  SYNC_MERGED
+  SYNC_ROLLED_BACK
+  // Security
+  CVE_DETECTED
+  CVE_PATCHED
+  CVE_DISMISSED
+  // Billing
+  SUBSCRIPTION_CREATED
+  SUBSCRIPTION_UPDATED
+  SUBSCRIPTION_CANCELED
+  // GitHub App
+  GITHUB_APP_INSTALLED
+  GITHUB_APP_UNINSTALLED
+  // API Token
+  TOKEN_CREATED
+  TOKEN_REVOKED
+}
+
+// =============================================================================
+// IDENTITY & ACCESS
+// =============================================================================
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  emailVerified  Boolean   @default(false)
+  name           String?
+  avatarUrl      String?
+  // Better Auth stores hashed password + session data externally
+  // This model is the Syncr-side user record
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime? // soft delete
+
+  // Relations
+  memberships    OrgMember[]
+  sessions       Session[]
+  apiTokens      ApiToken[]
+  auditLogs      AuditLog[]
+  publishedVersions ComponentVersion[]
+  approvedSyncs  SyncProposal[]    @relation("ApprovedBy")
+  createdTokens  ApiToken[]        @relation("CreatedBy")
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Org {
+  id          String    @id @default(cuid())
+  slug        String    @unique  // URL-safe, e.g. "acme-studio"
+  name        String
+  avatarUrl   String?
+  plan        Plan      @default(FREE)
+  status      OrgStatus @default(ACTIVE)
+  // Billing contact — may differ from owner
+  billingEmail String?
+  // Feature flags override per org (for beta features, enterprise unlocks)
+  featureFlags Json     @default("{}")
+  meta         Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  deletedAt    DateTime?
+
+  // Relations
+  members          OrgMember[]
+  repos            Repo[]
+  components       Component[]
+  syncProposals    SyncProposal[]
+  vulnerabilities  Vulnerability[]
+  subscription     Subscription?
+  githubInstall    GithubInstallation?
+  auditLogs        AuditLog[]
+  apiTokens        ApiToken[]
+  webhookEndpoints WebhookEndpoint[]
+  scans            Scan[]
+
+  @@index([slug])
+  @@index([status])
+  @@map("orgs")
+}
+
+model OrgMember {
+  id        String   @id @default(cuid())
+  orgId     String
+  userId    String
+  role      OrgRole  @default(MEMBER)
+  // Invitation state
+  invitedAt  DateTime?
+  invitedBy  String?   // userId who sent invite
+  joinedAt   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  org  Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@index([userId])
+  @@map("org_members")
+}
+
+// API tokens for CLI authentication (not session-based)
+model ApiToken {
+  id          String    @id @default(cuid())
+  orgId       String
+  userId      String    // token owner
+  name        String    // e.g. "CI Pipeline", "Local Dev"
+  tokenHash   String    @unique // bcrypt hash — never store plaintext
+  tokenPrefix String    // first 8 chars shown in UI e.g. "sk_syncr"
+  scopes      String[]  // e.g. ["components:read", "components:write"]
+  lastUsedAt  DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime  @default(now())
+  createdById String
+
+  org       Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User @relation("CreatedBy", fields: [createdById], references: [id])
+
+  @@index([orgId])
+  @@index([tokenHash])
+  @@map("api_tokens")
+}
+
+// =============================================================================
+// GITHUB INTEGRATION
+// =============================================================================
+
+model GithubInstallation {
+  id                 String    @id @default(cuid())
+  orgId              String    @unique
+  // GitHub-side identifiers
+  installationId     Int       @unique  // GitHub's installation ID
+  githubOrgLogin     String    // e.g. "acme-studio"
+  githubOrgId        Int       @unique
+  githubOrgAvatarUrl String?
+  // Permission snapshot at install time
+  permissions        Json      @default("{}")
+  // Installation state
+  suspendedAt        DateTime? // set when GitHub sends installation.suspend
+  suspendedBy        String?
+  uninstalledAt      DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([installationId])
+  @@map("github_installations")
+}
+
+// Raw webhook events from GitHub — stored for replay/debugging
+model GithubWebhookEvent {
+  id             String   @id @default(cuid())
+  deliveryId     String   @unique  // X-GitHub-Delivery header
+  event          String   // X-GitHub-Event header e.g. "push", "installation"
+  action         String?  // e.g. "created", "deleted"
+  installationId Int?
+  payload        Json
+  processed      Boolean  @default(false)
+  processedAt    DateTime?
+  error          String?  // error message if processing failed
+  createdAt      DateTime @default(now())
+
+  @@index([deliveryId])
+  @@index([installationId])
+  @@index([processed])
+  @@index([createdAt])
+  @@map("github_webhook_events")
+}
+
+// =============================================================================
+// REPOSITORIES
+// =============================================================================
+
+model Repo {
+  id             String     @id @default(cuid())
+  orgId          String
+  // GitHub identifiers
+  githubRepoId   Int        @unique
+  fullName       String     // "acme-studio/design-system"
+  name           String     // "design-system"
+  defaultBranch  String     @default("main")
+  isPrivate      Boolean    @default(true)
+  htmlUrl        String     // GitHub web URL
+  cloneUrl       String?
+  // Syncr classification
+  role           RepoRole   @default(CONSUMER)
+  status         RepoStatus @default(ACTIVE)
+  // Industry tag for compliance context
+  industry       String?    // "healthcare" | "fintech" | "government" | null
+  // Computed scores (updated by scanner)
+  healthScore    String     @default("A")  // A-F
+  syncScore      Int        @default(100)  // 0-100, % components in sync
+  // Timestamps
+  lastScannedAt  DateTime?
+  lastPushedAt   DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  deletedAt      DateTime?
+  meta           Json       @default("{}")
+
+  // Relations
+  org               Org               @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repoComponents    RepoComponent[]
+  syncProposals     SyncProposal[]
+  vulnerabilities   Vulnerability[]
+  scans             Scan[]
+
+  @@index([orgId])
+  @@index([githubRepoId])
+  @@index([orgId, status])
+  @@index([orgId, role])
+  @@map("repos")
+}
+
+// =============================================================================
+// COMPONENT REGISTRY
+// =============================================================================
+
+model Component {
+  id           String             @id @default(cuid())
+  orgId        String
+  // Identity
+  name         String             // "Button"
+  slug         String             // "button" — URL and CLI safe
+  description  String?
+  framework    ComponentFramework
+  // Visibility
+  isPublic     Boolean            @default(false)  // public marketplace
+  isDeprecated Boolean            @default(false)
+  deprecatedAt DateTime?
+  deprecationNote String?
+  // Latest version cache (denormalised for fast reads)
+  latestVersion String?           // "2.4.1"
+  latestVersionId String?
+  // Stats (updated async)
+  downloadCount Int               @default(0)
+  repoUsageCount Int              @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  deletedAt    DateTime?
+  meta         Json               @default("{}")
+
+  // Relations
+  org          Org                @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  versions     ComponentVersion[]
+  repoUsages   RepoComponent[]
+  syncProposals SyncProposal[]
+  tags         ComponentTag[]
+
+  @@unique([orgId, slug])
+  @@index([orgId])
+  @@index([orgId, isPublic])
+  @@index([orgId, framework])
+  @@map("components")
+}
+
+model ComponentVersion {
+  id           String    @id @default(cuid())
+  componentId  String
+  // Semver — enforced at application layer with Zod
+  version      String    // "2.4.1"
+  // Changelog
+  changelog    String?
+  isBreaking   Boolean   @default(false)
+  // Storage — file lives in S3
+  storageKey   String    // S3 object key e.g. "orgs/xxx/components/button/2.4.1.tar.gz"
+  storageSizeBytes Int?
+  // Content fingerprint for deduplication
+  contentHash  String    // SHA-256 of the tar.gz content
+  // Who published
+  publishedById String
+  publishedAt  DateTime  @default(now())
+  // Immutable after creation — no updatedAt intentional
+
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  publisher   User      @relation(fields: [publishedById], references: [id])
+  syncProposals SyncProposal[]
+
+  @@unique([componentId, version])
+  @@index([componentId])
+  @@index([contentHash])
+  @@map("component_versions")
+}
+
+// Tags for component discovery/filtering
+model ComponentTag {
+  componentId String
+  tag         String  // "form" | "navigation" | "data-display"
+
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@id([componentId, tag])
+  @@index([tag])
+  @@map("component_tags")
+}
+
+// Junction: which version of a component is used in which repo
+model RepoComponent {
+  id               String    @id @default(cuid())
+  repoId           String
+  componentId      String
+  // Version tracking
+  usedVersion      String    // currently installed version
+  latestVersion    String?   // latest available — denormalised
+  isOutOfSync      Boolean   @default(false)
+  // File location in the repo
+  filePath         String    // "src/components/Button/Button.tsx"
+  // Detection metadata
+  detectedBy       String    // "file-name" | "import-path" | "hash"
+  detectedAt       DateTime  @default(now())
+  lastVerifiedAt   DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  repo      Repo      @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  component Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+
+  @@unique([repoId, componentId])
+  @@index([repoId])
+  @@index([componentId])
+  @@index([isOutOfSync])
+  @@map("repo_components")
+}
+
+// =============================================================================
+// SYNC ENGINE
+// =============================================================================
+
+model SyncProposal {
+  id           String     @id @default(cuid())
+  orgId        String
+  repoId       String
+  componentId  String
+  // Version transition
+  fromVersion  String     // "2.3.0"
+  toVersionId  String
+  toVersion    String     // "2.4.1" — denormalised for fast reads
+  isBreaking   Boolean    @default(false)
+  // GitHub PR
+  githubPrUrl  String?
+  githubPrNumber Int?
+  githubBranch String?    // "syncr/update-button-2.4.1"
+  // State machine
+  status       SyncStatus @default(PENDING)
+  // Resolution
+  approvedById String?
+  approvedAt   DateTime?
+  resolvedAt   DateTime?
+  // Conflict detail
+  conflictDetail String?  // human-readable description of the conflict
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  meta         Json       @default("{}")
+
+  org        Org              @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repo       Repo             @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  component  Component        @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  toVer      ComponentVersion @relation(fields: [toVersionId], references: [id])
+  approvedBy User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
+  events     SyncEvent[]
+
+  @@index([orgId])
+  @@index([repoId])
+  @@index([componentId])
+  @@index([orgId, status])
+  @@index([status])
+  @@map("sync_proposals")
+}
+
+// Append-only event log for every state change on a SyncProposal
+// This is the audit trail for sync operations
+model SyncEvent {
+  id         String        @id @default(cuid())
+  proposalId String
+  event      SyncEventType
+  actorId    String?       // null = system action
+  actorType  String        @default("system")  // "user" | "system" | "github"
+  // Snapshot of relevant data at time of event
+  metadata   Json          @default("{}")
+  createdAt  DateTime      @default(now())
+  // Immutable — no updatedAt
+
+  proposal SyncProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@index([createdAt])
+  @@map("sync_events")
+}
+
+// =============================================================================
+// SECURITY — CVE SCANNER
+// =============================================================================
+
+model Scan {
+  id          String     @id @default(cuid())
+  orgId       String
+  repoId      String
+  status      ScanStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  errorMessage String?
+  // Scan results summary
+  totalPackages    Int @default(0)
+  vulnerablePackages Int @default(0)
+  criticalCount    Int @default(0)
+  highCount        Int @default(0)
+  mediumCount      Int @default(0)
+  lowCount         Int @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  org  Org  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repo Repo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  vulnerabilities Vulnerability[]
+
+  @@index([orgId])
+  @@index([repoId])
+  @@index([status])
+  @@index([orgId, status])
+  @@map("scans")
+}
+
+model Vulnerability {
+  id              String                @id @default(cuid())
+  orgId           String
+  repoId          String
+  scanId          String?               // null = manually added
+  // CVE identification
+  cveId           String                // "CVE-2024-1234"
+  osvId           String?               // OSV.dev ID for cross-reference
+  title           String
+  description     String?
+  severity        VulnerabilitySeverity
+  cvssScore       Float?                // 0.0 - 10.0
+  // Affected package
+  packageName     String
+  packageEcosystem String              // "npm" | "pypi" | "rubygems"
+  affectedVersionRange String          // ">=1.0.0 <2.3.1"
+  currentVersion  String               // version found in repo
+  patchedVersion  String?              // version that fixes it
+  // External references
+  referenceUrls   String[]
+  // Status
+  status          VulnerabilityStatus  @default(OPEN)
+  patchPrUrl      String?
+  patchPrNumber   Int?
+  dismissedReason String?
+  dismissedById   String?
+  // Timestamps
+  detectedAt      DateTime             @default(now())
+  remediatedAt    DateTime?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  org  Org   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  repo Repo  @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  scan Scan? @relation(fields: [scanId], references: [id])
+
+  @@unique([repoId, cveId])
+  @@index([orgId])
+  @@index([repoId])
+  @@index([orgId, severity])
+  @@index([orgId, status])
+  @@index([cveId])
+  @@map("vulnerabilities")
+}
+
+// =============================================================================
+// BILLING
+// =============================================================================
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  orgId                 String             @unique
+  // Stripe identifiers
+  stripeCustomerId      String?            @unique
+  stripeSubscriptionId  String?            @unique
+  stripePriceId         String?
+  stripeProductId       String?
+  // Plan mirrors Org.plan — both updated atomically on plan change
+  plan                  Plan               @default(FREE)
+  status                SubscriptionStatus @default(TRIALING)
+  // Trial
+  trialEndsAt           DateTime?
+  // Billing period
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  canceledAt            DateTime?
+  // Metered usage (for AI credits)
+  aiCreditsIncluded     Int                @default(0)
+  aiCreditsUsed         Int                @default(0)
+  aiCreditsResetAt      DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  org Org @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
+  @@map("subscriptions")
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+// Outbound webhook endpoints configured by the org
+model WebhookEndpoint {
+  id          String   @id @default(cuid())
+  orgId       String
+  url         String
+  secret      String   // HMAC signing secret — stored encrypted
+  events      WebhookEventType[]
+  isActive    Boolean  @default(true)
+  // Stats
+  successCount Int     @default(0)
+  failureCount Int     @default(0)
+  lastDeliveredAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org           Org                    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  deliveries    WebhookDelivery[]
+
+  @@index([orgId])
+  @@map("webhook_endpoints")
+}
+
+// Log of every outbound webhook delivery attempt
+model WebhookDelivery {
+  id           String   @id @default(cuid())
+  endpointId   String
+  event        WebhookEventType
+  payload      Json
+  responseCode Int?
+  responseBody String?
+  success      Boolean
+  attemptCount Int      @default(1)
+  deliveredAt  DateTime @default(now())
+
+  endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+
+  @@index([endpointId])
+  @@index([success])
+  @@map("webhook_deliveries")
+}
+
+// =============================================================================
+// AUDIT LOG — APPEND ONLY, NEVER UPDATE, NEVER DELETE
+// =============================================================================
+
+model AuditLog {
+  // BigInt autoincrement for guaranteed ordering without collisions
+  id           BigInt      @id @default(autoincrement())
+  orgId        String?
+  userId       String?     // null = system action
+  action       AuditAction
+  // Resource that was acted upon
+  resourceType String?     // "component" | "repo" | "sync_proposal" etc.
+  resourceId   String?
+  resourceName String?     // human-readable name at time of action
+  // Change snapshot
+  before       Json?       // state before the action
+  after        Json?       // state after the action
+  // Context
+  ipAddress    String?
+  userAgent    String?
+  requestId    String?     // trace ID for debugging
+  metadata     Json        @default("{}")
+  createdAt    DateTime    @default(now())
+  // NO updatedAt — this table is immutable
+
+  org  Org?  @relation(fields: [orgId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([orgId, createdAt(sort: Desc)])
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType, resourceId])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// FEATURE FLAGS (per-org overrides)
+// =============================================================================
+// Note: most feature gating is done via Plan checks in application code.
+// This table is for one-off overrides: beta access, enterprise unlocks,
+// killswitches for specific orgs.
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  orgId       String
+  flag        String   // "ai_component_generator" | "beta_marketplace"
+  enabled     Boolean  @default(true)
+  expiresAt   DateTime?
+  reason      String?  // why this override exists
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([orgId, flag])
+  @@index([orgId])
+  @@map("feature_flags")
+}
