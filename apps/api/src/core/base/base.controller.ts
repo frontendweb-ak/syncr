@@ -1,13 +1,8 @@
+import type { PaginatedResponse, SuccessResponse } from "@syncr/types";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-
-import type { AppContext } from "../../types/env";
-import {
-  buildMeta,
-  buildPaginationMeta,
-  type PaginatedResponse,
-  type SuccessResponse,
-} from "../http/response";
+import type { AppContext, AppCtx } from "../../types/env";
+import { buildMeta, buildPaginationMeta } from "../http/response";
 
 function getRequestId(c: Context<AppContext>): string {
   // requestId() middleware (hono/request-id) sets this — see app.ts. Falls
@@ -17,11 +12,13 @@ function getRequestId(c: Context<AppContext>): string {
 }
 
 export function ok<T>(
-  c: Context<AppContext>,
+  c: AppCtx,
   data: T,
   status: ContentfulStatusCode = 200,
+  message: string = "",
 ) {
   const body: SuccessResponse<T> = {
+    message,
     success: true,
     data,
     meta: buildMeta(getRequestId(c)),
@@ -29,16 +26,16 @@ export function ok<T>(
   return c.json(body, status);
 }
 
-export function created<T>(c: Context<AppContext>, data: T) {
+export function created<T>(c: AppCtx, data: T) {
   return ok(c, data, 201);
 }
 
-export function noContent(c: Context<AppContext>) {
+export function noContent(c: AppCtx) {
   return c.body(null, 204);
 }
 
 export function paginated<T>(
-  c: Context<AppContext>,
+  c: AppCtx,
   items: T[],
   page: number,
   pageSize: number,

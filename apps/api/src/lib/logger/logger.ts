@@ -6,7 +6,7 @@ export function createLogger(config: AppConfig): Logger {
     level: config.APP_ENV === "development" ? "debug" : "info",
 
     base: {
-      service: "aim-api",
+      service: "syncr-api",
       environment: config.APP_ENV,
     },
 

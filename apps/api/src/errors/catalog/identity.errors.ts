@@ -162,6 +162,11 @@ export const identityErrors = {
       ),
 
     // credentials
+    credentialsAlreadyExists: () =>
+      new ConflictException(
+        "Credential already existed",
+        ErrorCode.AUTH_CREDENTIALS_ALREADY_EXIST,
+      ),
     credentialsNotFound: () =>
       new NotFoundException(
         "Authentication credentials",
@@ -173,6 +178,7 @@ export const identityErrors = {
         ErrorCode.AUTH_CREDENTIALS_CREATE_FAILED,
         "Failed to create authentication credentials",
       ),
+
     invalidCredentials: () =>
       new UnauthorizedException(
         "Invalid credentials",
@@ -235,6 +241,20 @@ export const identityErrors = {
       new UnauthorizedException(
         "Refresh token does not match the device",
         ErrorCode.AUTH_DEVICE_REFRESH_TOKEN_MISMATCH,
+      ),
+
+    loginHistoryCreateFailed: () =>
+      new HttpException(
+        500,
+        ErrorCode.AUTH_LOGIN_HISTORY_CREATE_FAILED,
+        "Failed to create authentication credentials",
+      ),
+
+    securityEventCreateFailed: () =>
+      new HttpException(
+        500,
+        ErrorCode.AUTH_SECURITY_EVENT_CREATE_FAILED,
+        "Failed to create security event",
       ),
   },
 

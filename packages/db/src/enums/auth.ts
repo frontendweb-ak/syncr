@@ -37,6 +37,7 @@ export const securityEventTypeEnum = pgEnum(
   SECURITY_EVENT_TYPE,
 );
 
+
 export const impersonationStatusEnum = pgEnum(
   "impersonation_status",
   IMPERSONATION_STATUS,

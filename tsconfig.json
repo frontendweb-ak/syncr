@@ -3,5 +3,10 @@
     "strict": true,
     "skipLibCheck": true
   },
-  "references": [{ "path": "packages/db" }, { "path": "apps/api" }]
+  "references": [
+    { "path": "packages/db" },
+    { "path": "packages/types" },
+    { "path": "packages/validator" },
+    { "path": "apps/api" }
+  ]
 }

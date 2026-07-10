@@ -7,36 +7,11 @@
 // changes that aren't all attempts (password change, lockout, device
 // revocation).
 
-import { loginHistory } from "@syncr/db";
-import {
-  desc,
-  eq,
-  type InferInsertModel,
-  type InferSelectModel,
-} from "drizzle-orm";
+import type { LoginFailureReason, LoginMethod } from "@syncr/types";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { BaseRepo } from "../../../core/base/base.repo";
+import { type LoginHistoryEntry, LoginHistoryRepo } from "./login-history.repo";
 
-export type LoginHistoryEntry = InferSelectModel<typeof loginHistory>;
-type NewLoginHistoryEntry = InferInsertModel<typeof loginHistory>;
 
-class LoginHistoryRepo extends BaseRepo {
-  async create(data: NewLoginHistoryEntry): Promise<void> {
-    await this.db.insert(loginHistory).values(data);
-  }
-
-  async listForUser(
-    userId: string,
-    limit: number,
-  ): Promise<LoginHistoryEntry[]> {
-    return this.db
-      .select()
-      .from(loginHistory)
-      .where(eq(loginHistory.userId, userId))
-      .orderBy(desc(loginHistory.createdAt))
-      .limit(limit);
-  }
-}
 
 export interface RecordLoginAttemptInput {
   userId?: string;
@@ -44,9 +19,9 @@ export interface RecordLoginAttemptInput {
   loginIdentifier?: string;
   ipAddress?: string;
   userAgent?: string;
-  loginMethod: LoginHistoryEntry["loginMethod"];
+  loginMethod: LoginMethod;
   success: boolean;
-  failureReason?: LoginHistoryEntry["failureReason"];
+  failureReason?: LoginFailureReason;
 }
 
 export class LoginHistoryService {
@@ -69,7 +44,11 @@ export class LoginHistoryService {
     });
   }
 
+  async getById(id: string) {
+    return this.repo.findById(id);
+  }
+
   async listForUser(userId: string, limit = 50): Promise<LoginHistoryEntry[]> {
-    return this.repo.listForUser(userId, limit);
+    return this.repo.findRecentByUser(userId, limit);
   }
 }

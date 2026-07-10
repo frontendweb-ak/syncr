@@ -39,7 +39,11 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   AUTH_REFRESH_TOKEN_EXPIRED: "Refresh token has expired.",
   AUTH_REFRESH_TOKEN_REUSED:
     "Refresh token has already been used and was revoked for safety.",
-
+  AUTH_LOGIN_HISTORY_CREATE_FAILED:
+    "Failed to create authentication credentials",
+  AUTH_SECURITY_EVENT_CREATE_FAILED:
+    "Failed to create authentication credentials",
+  AUTH_CREDENTIALS_ALREADY_EXIST: "Credential already existes",
   // Auth: login session
   AUTH_SESSION_NOT_FOUND: "Session not found.",
   AUTH_SESSION_EXPIRED: "Session has expired.",

@@ -5,41 +5,15 @@
 // after the fact from login_history alone, since some events (password
 // change, lockout) aren't login attempts at all.
 
-import { securityEvents } from "@syncr/db";
-import {
-  desc,
-  eq,
-  type InferInsertModel,
-  type InferSelectModel,
-} from "drizzle-orm";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { BaseRepo } from "../../../core/base/base.repo";
+import {
+  type NewSecurityEvent,
+  type SecurityEvent,
+  SecurityEventRepo,
+} from "./security-event.repo";
 
-export type SecurityEvent = InferSelectModel<typeof securityEvents>;
-type NewSecurityEvent = InferInsertModel<typeof securityEvents>;
 
-class SecurityEventRepo extends BaseRepo {
-  async create(data: NewSecurityEvent): Promise<void> {
-    await this.db.insert(securityEvents).values(data);
-  }
 
-  async listForUser(userId: string, limit: number): Promise<SecurityEvent[]> {
-    return this.db
-      .select()
-      .from(securityEvents)
-      .where(eq(securityEvents.userId, userId))
-      .orderBy(desc(securityEvents.createdAt))
-      .limit(limit);
-  }
-}
-
-export interface RecordSecurityEventInput {
-  userId?: string;
-  deviceId?: string;
-  eventType: SecurityEvent["eventType"];
-  ipAddress?: string;
-  metadata?: Record<string, unknown>;
-}
 
 export class SecurityEventService {
   private readonly repo: SecurityEventRepo;
@@ -48,7 +22,7 @@ export class SecurityEventService {
     this.repo = new SecurityEventRepo(db);
   }
 
-  async record(input: RecordSecurityEventInput): Promise<void> {
+  async record(input: NewSecurityEvent): Promise<void> {
     await this.repo.create({
       userId: input.userId,
       deviceId: input.deviceId,
@@ -58,7 +32,11 @@ export class SecurityEventService {
     });
   }
 
-  async listForUser(userId: string, limit = 50): Promise<SecurityEvent[]> {
-    return this.repo.listForUser(userId, limit);
+  async getRecentByUser(userId: string, limit = 50): Promise<SecurityEvent[]> {
+    return this.repo.findRecentByUser(userId, limit);
+  }
+
+  async cleanup(days: number): Promise<number> {
+    return this.repo.deleteOlderThan(days);
   }
 }

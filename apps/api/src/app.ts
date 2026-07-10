@@ -12,38 +12,15 @@ import { createAuth } from "./lib/auth/better-auth";
 import { betterAuthMiddleware } from "./middleware/better-auth";
 import { createConfigMiddleware } from "./middleware/config";
 import { dbMiddleware } from "./middleware/db";
+import { deviceMiddleware } from "./middleware/device";
 import { jwtMiddleware } from "./middleware/jwt";
 import { loggerMiddleware } from "./middleware/logger";
+import { routes } from "./routes";
 import type { AppContext } from "./types/env";
+
 export function createApp(config: AppConfig) {
   const app = new Hono<AppContext>();
 
-  app.use("*", createConfigMiddleware(config));
-
-  // Built once per process (Node) / per isolate (Workers) — not per
-  // request. Pino is cheap to .child() from but not cheap to construct.
-  // Logger
-  const baseLogger = createLogger(config);
-  app.use("*", loggerMiddleware(baseLogger));
-
-  // Built once per process (Node) / per isolate (Workers) — not per
-  // request. createDb() opens a postgres-js connection pool; constructing
-  // it inside a request-scoped middleware would open (and on Node, leak)
-  // a brand-new pool on every single request. See middleware/db.ts for
-  // the full explanation.
-  // baseLogger.info(`db:${config.APP_ENV}:${config.DATABASE_URL}`);
-  const db = createDb({
-    DATABASE_URL: config.DATABASE_URL,
-    ENVIRONMENT: config.APP_ENV,
-  });
-
-  // Better Auth middleware
-  const auth = createAuth(db, config);
-  app.use("*", betterAuthMiddleware(auth));
-
-  //   JWT
-  const jwt = new JwtService(config);
-  app.use("*", jwtMiddleware(jwt));
   /**
    * --------------------------------------------------------------------------
    * Request ID
@@ -59,6 +36,14 @@ export function createApp(config: AppConfig) {
    */
   app.use("*", requestId());
 
+  app.use("*", createConfigMiddleware(config));
+
+  // Built once per process (Node) / per isolate (Workers) — not per
+  // request. Pino is cheap to .child() from but not cheap to construct.
+  // Logger
+  const baseLogger = createLogger(config);
+  app.use("*", loggerMiddleware(baseLogger));
+
   /**
    * --------------------------------------------------------------------------
    * Request Timing
@@ -71,6 +56,7 @@ export function createApp(config: AppConfig) {
    */
 
   app.use("*", timing());
+
   /**
    * --------------------------------------------------------------------------
    * Security Headers
@@ -120,10 +106,8 @@ export function createApp(config: AppConfig) {
     cors({
       origin(origin) {
         if (!origin) return origin;
-
         return allowedOrigins.includes(origin) ? origin : null;
       },
-
       credentials: true,
       allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
       allowHeaders: ["Authorization", "Content-Type", "X-Request-Id"],
@@ -153,17 +137,37 @@ export function createApp(config: AppConfig) {
     }),
   );
 
-  //   db
+  app.use("*", deviceMiddleware);
+
+  // Built once per process (Node) / per isolate (Workers) — not per
+  // request. createDb() opens a postgres-js connection pool; constructing
+  // it inside a request-scoped middleware would open (and on Node, leak)
+  // a brand-new pool on every single request. See middleware/db.ts for
+  // the full explanation.
+  // baseLogger.info(`db:${config.APP_ENV}:${config.DATABASE_URL}`);
   /**
    * Attach a database instance to the request context.
-   *
    * Access anywhere in a route:
-   *
    * const db = c.get("db");
    */
+
+  const db = createDb({
+    DATABASE_URL: config.DATABASE_URL,
+    ENVIRONMENT: config.APP_ENV,
+  });
   app.use("*", dbMiddleware(db));
 
+  // Better Auth middleware
+  const auth = createAuth(db, config);
+  app.use("*", betterAuthMiddleware(auth));
+
+  //   JWT
+  const jwt = new JwtService(config);
+  app.use("*", jwtMiddleware(jwt));
+
   //   routes
+  app.route("/api/v1", routes);
+
   app.notFound(notFoundHandler);
 
   /**

@@ -6,8 +6,8 @@ export type User = {
   email: string;
   emailVerified: boolean;
   image?: string;
-  role: string;
+  role?: string;
   status: UserStatus;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };

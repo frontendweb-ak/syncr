@@ -24,8 +24,8 @@ export const envSchema = z.object({
     .min(32, "REFRESH_TOKEN_SECRET must be at least 32 characters"),
   ACCESS_TOKEN_EXPIRES_IN: z.string().default("15m"),
   REFRESH_TOKEN_EXPIRES_IN: z.string().default("30d"),
-  JWT_ISSUER: z.string().default("aim-api"),
-  JWT_AUDIENCE: z.string().default("aim-mobile"),
+  JWT_ISSUER: z.string().default("syncr-api"),
+  JWT_AUDIENCE: z.string().default("syncr-mobile"),
 
   // Cashfree (optional until payment module is enabled)
   CASHFREE_APP_ID: z.string().optional(),

@@ -1,32 +1,33 @@
-import { PLATFORM } from "../../config";
-import { BaseController } from "../../core/base/base.controller";
+import { created } from "../../core/base/base.controller";
 import type { AppCtx } from "../../types/env";
 import { AuthService } from "./auth.service";
 
-const REFRESH_COOKIE_MAX_AGE =
-  PLATFORM.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60;
+// const REFRESH_COOKIE_MAX_AGE =
+//   PLATFORM.REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60;
 
-export class AuthController extends BaseController {
-  private service(c: AppCtx) {
-    return new AuthService(
-      c.get("db"),
-      c.get("jwt"),
-      c.get("config"),
-      c.get("logger"),
-    );
-  }
+function makeAuthService(c: AppCtx) {
+  return new AuthService(
+    c.get("db"),
+    c.get("jwt"),
+    c.get("config"),
+    c.get("logger"),
+  );
+}
 
+export const authController = {
   async register(c: AppCtx) {
     const body = await c.req.json();
-  }
-
-  login = async (c: AppCtx) => {
-    const body = await c.req.json();
-  };
-
-  refresh = async (c: AppCtx) => {
-    const body = await c.req.json();
-  };
-
-  logout = async (c: AppCtx) => {};
-}
+    const service = makeAuthService(c);
+    try {
+      const result = await service.registerEmail({
+        name: body.name,
+        email: body.email,
+        password: body.password,
+      });
+      return created(c, result);
+    } catch (err) {
+      console.log("err", err);
+      throw err;
+    }
+  },
+};

@@ -20,5 +20,5 @@ export type AuthResponse = {
 };
 
 export type SignInResponse = AuthResponse;
-export type SignUpResponse = AuthResponse;
 export type RefreshResponse = never;
+

@@ -23,6 +23,7 @@ export class AuthProviderService extends LoggedService {
     this.repo = new AuthProviderRepo(db);
   }
 
+
   /**
    * Link an OAuth provider to a user.
    */
