@@ -1,0 +1,33 @@
+// middleware/device.ts
+
+import type { DeviceInput } from "@syncr/types";
+import { createMiddleware } from "hono/factory";
+import type { AppContext } from "../types/env";
+import { parseDeviceType } from "../utils/device-type";
+
+export const deviceMiddleware = createMiddleware<AppContext>(
+  async (c, next) => {
+    const ip =
+      c.req.header("cf-connecting-ip") ??
+      c.req.header("x-real-ip") ??
+      c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
+
+    const deviceId = c.req.header("x-device-id");
+
+    const device: DeviceInput = {
+      deviceId: deviceId ?? crypto.randomUUID(),
+      deviceType: parseDeviceType(c.req.header("x-device-type")),
+      platform: c.req.header("x-platform"),
+      osVersion: c.req.header("x-platform-version"),
+      deviceName: c.req.header("x-device-name"),
+      appVersion: c.req.header("x-app-version"),
+      pushToken: c.req.header("x-push-token"),
+      userAgent: c.req.header("user-agent"),
+      ipAddress: ip,
+    };
+
+    c.set("device", device);
+
+    await next();
+  },
+);

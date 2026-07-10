@@ -1,57 +1,57 @@
 import {
-  ApiKeyStatus,
-  ApiKeyType,
-  AuthProvider,
-  DeviceStatus,
-  DeviceType,
-  ImpersonationStatus,
-  LoginFailureReason,
-  LoginMethod,
-  MfaType,
-  PasswordResetTokenStatus,
-  SecurityEventType,
-  UserStatus,
-  VerificationStatus,
+  API_KEY_STATUS,
+  API_KEY_TYPE,
+  AUTH_PROVIDER,
+  DEVICE_STATUS,
+  DEVICE_TYPE,
+  IMPERSONATION_STATUS,
+  LOGIN_FAILURE_REASON,
+  LOGIN_METHODS,
+  MFA_TYPE,
+  PASSWORD_RESET_TOKEN_STATUS,
+  SECURITY_EVENT_TYPE,
+  USER_STATUS,
+  VERIFICATION_STATUS,
 } from "@syncr/types";
 import { pgEnum } from "drizzle-orm/pg-core";
 
 // user status
-export const userStatus = pgEnum("user_status", UserStatus);
+export const userStatus = pgEnum("user_status", USER_STATUS);
 // Auth provider
-export const authProviderEnum = pgEnum("auth_provider", AuthProvider);
+export const authProviderEnum = pgEnum("auth_provider", AUTH_PROVIDER);
 // Mfa type
-export const mfaTypeEnum = pgEnum("mfa_type", MfaType);
+export const mfaTypeEnum = pgEnum("mfa_type", MFA_TYPE);
 
-export const deviceStatusEnum = pgEnum("device_status", DeviceStatus);
-export const deviceTypeEnum = pgEnum("device_type", DeviceType);
+export const deviceStatusEnum = pgEnum("device_status", DEVICE_STATUS);
+export const deviceTypeEnum = pgEnum("device_type", DEVICE_TYPE);
 
-export const loginMethodEnum = pgEnum("login_method", LoginMethod);
+export const loginMethodEnum = pgEnum("login_method", LOGIN_METHODS);
 
 export const loginFailureReasonEnum = pgEnum(
   "login_failure_reason",
-  LoginFailureReason,
+  LOGIN_FAILURE_REASON,
 );
 
 export const securityEventTypeEnum = pgEnum(
   "security_event_type",
-  SecurityEventType,
+  SECURITY_EVENT_TYPE,
 );
 
 export const impersonationStatusEnum = pgEnum(
   "impersonation_status",
-  ImpersonationStatus,
+  IMPERSONATION_STATUS,
 );
 
 export const verificationStatusEnum = pgEnum(
   "verification_status",
-  VerificationStatus,
+  VERIFICATION_STATUS,
 );
 
 export const passwordResetTokenStatusEnum = pgEnum(
   "password_reset_token_status",
-  PasswordResetTokenStatus,
+  PASSWORD_RESET_TOKEN_STATUS,
 );
 
-export const apiKeyTypeEnum = pgEnum("api_key_type", ApiKeyType);
+export const apiKeyTypeEnum = pgEnum("api_key_type", API_KEY_TYPE);
 
-export const apiKeyStatusEnum = pgEnum("api_key_status", ApiKeyStatus);
+export const apiKeyStatusEnum = pgEnum("api_key_status", API_KEY_STATUS);

@@ -45,15 +45,10 @@ export const repositories = pgTable(
       .notNull(),
 
     status: repositoryStatusEnum("status").default("ACTIVE").notNull(),
-
     isFork: boolean("is_fork").default(false).notNull(),
-
     cloneUrl: text("clone_url"),
-
     sshUrl: text("ssh_url"),
-
     htmlUrl: text("html_url"),
-
     lastSyncedAt: timestamp("last_synced_at", {
       withTimezone: true,
     }),
@@ -78,16 +73,12 @@ export const repositories = pgTable(
       table.providerConnectionId,
       table.providerRepositoryId,
     ),
-
     uniqueIndex("repositories_project_slug_unique").on(
       table.projectId,
       sql`lower(${table.slug})`,
     ),
-
     index("repositories_project_idx").on(table.projectId),
-
     index("repositories_provider_idx").on(table.providerConnectionId),
-
     index("repositories_status_idx").on(table.status),
   ],
 );

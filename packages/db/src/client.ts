@@ -21,15 +21,15 @@ export function createDb(env: DbConfig) {
     // ── Connection health ────────────────────────────────────────
     onnotice: () => {}, // suppress PostgreSQL NOTICE logs
     connection: {
-      application_name: 'aim-api',
+      application_name: "syncr-api",
     },
 
     // ── SSL: required for Supabase ───────────────────────────────
-    ssl: env.ENVIRONMENT === 'production',
+    ssl: env.ENVIRONMENT === "production",
 
     // ── Transform: snake_case DB ↔ camelCase JS ──────────────────
     transform: postgres.camel, // auto-converts column names
-  })
+  });
 
   return drizzle(sql, {
     schema,

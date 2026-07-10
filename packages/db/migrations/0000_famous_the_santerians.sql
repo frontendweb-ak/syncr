@@ -2,10 +2,10 @@ CREATE TYPE "public"."api_key_status" AS ENUM('ACTIVE', 'REVOKED', 'EXPIRED');--
 CREATE TYPE "public"."api_key_type" AS ENUM('PERSONAL', 'ORGANIZATION');--> statement-breakpoint
 CREATE TYPE "public"."auth_provider" AS ENUM('PASSWORD', 'GITHUB', 'GOOGLE', 'MICROSOFT', 'APPLE', 'OIDC', 'SAML', 'PASSKEY');--> statement-breakpoint
 CREATE TYPE "public"."device_status" AS ENUM('ACTIVE', 'REVOKED', 'EXPIRED');--> statement-breakpoint
-CREATE TYPE "public"."device_type" AS ENUM('MOBILE', 'TABLET', 'WEB');--> statement-breakpoint
+CREATE TYPE "public"."device_type" AS ENUM('IOS', 'TABLET', 'ANDROID', 'WEB', 'DESKTOP');--> statement-breakpoint
 CREATE TYPE "public"."impersonation_status" AS ENUM('ACTIVE', 'ENDED', 'EXPIRED');--> statement-breakpoint
 CREATE TYPE "public"."login_failure_reason" AS ENUM('INVALID_CREDENTIALS', 'INVALID_OTP', 'ACCOUNT_SUSPENDED', 'ACCOUNT_NOT_VERIFIED', 'ACCOUNT_LOCKED', 'RATE_LIMITED', 'PROVIDER_ERROR');--> statement-breakpoint
-CREATE TYPE "public"."login_method" AS ENUM('PHONE_OTP', 'EMAIL_OTP', 'EMAIL_PASSWORD', 'GOOGLE', 'APPLE', 'SUPABASE');--> statement-breakpoint
+CREATE TYPE "public"."login_method" AS ENUM('PASSWORD', 'EMAIL_OTP', 'PHONE_OTP', 'GOOGLE', 'APPLE', 'GITHUB', 'MICROSOFT', 'PASSKEY');--> statement-breakpoint
 CREATE TYPE "public"."mfa_type" AS ENUM('TOTP');--> statement-breakpoint
 CREATE TYPE "public"."password_reset_token_status" AS ENUM('PENDING', 'USED', 'EXPIRED', 'REVOKED');--> statement-breakpoint
 CREATE TYPE "public"."security_event_type" AS ENUM('NEW_DEVICE_LOGIN', 'PASSWORD_CHANGED', 'PASSWORD_RESET_REQUESTED', 'PASSWORD_RESET', 'EMAIL_CHANGED', 'PHONE_CHANGED', 'ACCOUNT_SUSPENDED', 'ACCOUNT_ACTIVATED', 'ACCOUNT_LOCKED', 'ACCOUNT_UNLOCKED', 'DEVICE_REVOKED', 'ALL_DEVICES_REVOKED', 'TOKEN_VERSION_BUMPED', 'SUSPICIOUS_LOGIN_BLOCKED');--> statement-breakpoint
@@ -15,6 +15,16 @@ CREATE TYPE "public"."organizationInvite_status" AS ENUM('PENDING', 'ACCEPTED', 
 CREATE TYPE "public"."organizationMember_status" AS ENUM('INVITED', 'ACTIVE', 'SUSPENDED', 'REMOVED');--> statement-breakpoint
 CREATE TYPE "public"."organization_plan" AS ENUM('FREE', 'PRO', 'TEAM', 'BUSINESS', 'ENTERPRISE');--> statement-breakpoint
 CREATE TYPE "public"."organization_status" AS ENUM('ACTIVE', 'SUSPENDED', 'ARCHIVED', 'DELETED');--> statement-breakpoint
+CREATE TYPE "public"."environment_variables_status" AS ENUM('ACTIVE', 'ARCHIVED');--> statement-breakpoint
+CREATE TYPE "public"."environment_variables_type" AS ENUM('STRING', 'NUMBER', 'BOOLEAN', 'JSON');--> statement-breakpoint
+CREATE TYPE "public"."project_environment_status" AS ENUM('ACTIVE', 'ARCHIVED', 'DELETED');--> statement-breakpoint
+CREATE TYPE "public"."project_environment_type" AS ENUM('DEVELOPMENT', 'TEST', 'QA', 'STAGING', 'PRODUCTION', 'PREVIEW', 'CUSTOM');--> statement-breakpoint
+CREATE TYPE "public"."project_status" AS ENUM('ACTIVE', 'ARCHIVED', 'SUSPENDED', 'DELETED');--> statement-breakpoint
+CREATE TYPE "public"."project_visibility" AS ENUM('PRIVATE', 'INTERNAL', 'PUBLIC');--> statement-breakpoint
+CREATE TYPE "public"."provider_connection_status" AS ENUM('CONNECTED', 'DISCONNECTED', 'EXPIRED');--> statement-breakpoint
+CREATE TYPE "public"."provider" AS ENUM('GITHUB', 'GITLAB', 'BITBUCKET', 'AZURE_DEVOPS');--> statement-breakpoint
+CREATE TYPE "public"."repository_status" AS ENUM('ACTIVE', 'ARCHIVED', 'DISCONNECTED', 'DELETED');--> statement-breakpoint
+CREATE TYPE "public"."repository_visibility" AS ENUM('PRIVATE', 'INTERNAL', 'PUBLIC');--> statement-breakpoint
 CREATE TYPE "public"."workspace_status" AS ENUM('ACTIVE', 'ARCHIVED', 'SUSPENDED', 'DELETED');--> statement-breakpoint
 CREATE TABLE "user_auth_providers" (
 	"user_auth_provider_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -44,7 +54,7 @@ CREATE TABLE "auth_credentials" (
 CREATE TABLE "devices" (
 	"device_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
-	"device_type" "device_type" DEFAULT 'MOBILE' NOT NULL,
+	"device_type" "device_type" DEFAULT 'WEB' NOT NULL,
 	"platform" text,
 	"os_version" text,
 	"device_name" text,
@@ -276,6 +286,107 @@ CREATE TABLE "organizations" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "environment_secrets" (
+	"environment_secret_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"environment_id" uuid NOT NULL,
+	"key" text NOT NULL,
+	"encrypted_value" text NOT NULL,
+	"description" text,
+	"is_system" boolean DEFAULT false NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"rotated_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "environment_variables" (
+	"environment_variable_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"environment_id" uuid NOT NULL,
+	"key" text NOT NULL,
+	"value" text NOT NULL,
+	"type" "environment_variables_type" DEFAULT 'STRING' NOT NULL,
+	"description" text,
+	"is_system" boolean DEFAULT false NOT NULL,
+	"is_readonly" boolean DEFAULT false NOT NULL,
+	"status" "environment_variables_status" DEFAULT 'ACTIVE' NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"archived_at" timestamp with time zone,
+	"deleted_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "project_environments" (
+	"project_environment_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"project_id" uuid NOT NULL,
+	"name" text NOT NULL,
+	"slug" text NOT NULL,
+	"type" "project_environment_type" DEFAULT 'CUSTOM' NOT NULL,
+	"description" text,
+	"color" text,
+	"status" "project_environment_status" DEFAULT 'ACTIVE' NOT NULL,
+	"is_default" boolean DEFAULT false NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"archived_at" timestamp with time zone,
+	"deleted_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "project_members" (
+	"project_id" uuid NOT NULL,
+	"organization_member_id" uuid NOT NULL,
+	"joined_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"added_by_user_id" uuid,
+	"expires_at" timestamp with time zone,
+	CONSTRAINT "project_members_project_id_organization_member_id_pk" PRIMARY KEY("project_id","organization_member_id")
+);
+--> statement-breakpoint
+CREATE TABLE "project_settings" (
+	"project_settings_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"project_id" uuid NOT NULL,
+	"settings" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "project_settings_json_object_check" CHECK (jsonb_typeof("project_settings"."settings") = 'object')
+);
+--> statement-breakpoint
+CREATE TABLE "projects" (
+	"project_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"workspace_id" uuid NOT NULL,
+	"slug" text NOT NULL,
+	"name" text NOT NULL,
+	"display_name" text,
+	"description" text,
+	"icon_url" text,
+	"color" text,
+	"visibility" "project_visibility" DEFAULT 'PRIVATE' NOT NULL,
+	"status" "project_status" DEFAULT 'ACTIVE' NOT NULL,
+	"default_branch" text DEFAULT 'main' NOT NULL,
+	"archived_at" timestamp with time zone,
+	"is_template" boolean DEFAULT false NOT NULL,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"deleted_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "provider_connections" (
+	"provider_connection_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"organization_id" uuid NOT NULL,
+	"provider" "provider" NOT NULL,
+	"account_id" text NOT NULL,
+	"account_name" text NOT NULL,
+	"installation_id" text,
+	"status" "provider_connection_status" DEFAULT 'CONNECTED' NOT NULL,
+	"access_token_encrypted" text,
+	"refresh_token_encrypted" text,
+	"expires_at" timestamp with time zone,
+	"metadata" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "workspaces" (
 	"workspace_id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"organization_id" uuid NOT NULL,
@@ -319,6 +430,14 @@ ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_user_id_
 ALTER TABLE "organization_members" ADD CONSTRAINT "organization_members_invited_by_user_id_users_user_id_fk" FOREIGN KEY ("invited_by_user_id") REFERENCES "public"."users"("user_id") ON DELETE set null ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "organization_settings" ADD CONSTRAINT "organization_settings_organization_id_organizations_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("organization_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "organizations" ADD CONSTRAINT "organizations_owner_user_id_users_user_id_fk" FOREIGN KEY ("owner_user_id") REFERENCES "public"."users"("user_id") ON DELETE restrict ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "environment_secrets" ADD CONSTRAINT "environment_secrets_environment_id_project_environments_project_environment_id_fk" FOREIGN KEY ("environment_id") REFERENCES "public"."project_environments"("project_environment_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "environment_variables" ADD CONSTRAINT "environment_variables_environment_id_project_environments_project_environment_id_fk" FOREIGN KEY ("environment_id") REFERENCES "public"."project_environments"("project_environment_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "project_environments" ADD CONSTRAINT "project_environments_project_id_projects_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("project_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "project_members" ADD CONSTRAINT "project_members_project_id_projects_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("project_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "project_members" ADD CONSTRAINT "project_members_organization_member_id_organization_members_organization_member_id_fk" FOREIGN KEY ("organization_member_id") REFERENCES "public"."organization_members"("organization_member_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "project_settings" ADD CONSTRAINT "project_settings_project_id_projects_project_id_fk" FOREIGN KEY ("project_id") REFERENCES "public"."projects"("project_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "projects" ADD CONSTRAINT "projects_workspace_id_workspaces_workspace_id_fk" FOREIGN KEY ("workspace_id") REFERENCES "public"."workspaces"("workspace_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
+ALTER TABLE "provider_connections" ADD CONSTRAINT "provider_connections_organization_id_organizations_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("organization_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
 ALTER TABLE "workspaces" ADD CONSTRAINT "workspaces_organization_id_organizations_organization_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("organization_id") ON DELETE cascade ON UPDATE cascade;--> statement-breakpoint
 CREATE UNIQUE INDEX "user_auth_provider_unique" ON "user_auth_providers" USING btree ("provider","provider_id");--> statement-breakpoint
 CREATE INDEX "user_auth_user_idx" ON "user_auth_providers" USING btree ("user_id");--> statement-breakpoint
@@ -388,6 +507,24 @@ CREATE UNIQUE INDEX "organizations_personal_owner_unique" ON "organizations" USI
 CREATE INDEX "organizations_owner_idx" ON "organizations" USING btree ("owner_user_id");--> statement-breakpoint
 CREATE INDEX "organizations_status_idx" ON "organizations" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "organizations_plan_idx" ON "organizations" USING btree ("plan");--> statement-breakpoint
+CREATE UNIQUE INDEX "environment_secret_unique" ON "environment_secrets" USING btree ("environment_id",lower("key"));--> statement-breakpoint
+CREATE INDEX "environment_secret_environment_idx" ON "environment_secrets" USING btree ("environment_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "environment_variable_unique" ON "environment_variables" USING btree ("environment_id",lower("key"));--> statement-breakpoint
+CREATE INDEX "environment_variable_environment_idx" ON "environment_variables" USING btree ("environment_id");--> statement-breakpoint
+CREATE INDEX "environment_variable_status_idx" ON "environment_variables" USING btree ("status");--> statement-breakpoint
+CREATE UNIQUE INDEX "project_environment_slug_unique" ON "project_environments" USING btree ("project_id",lower("slug"));--> statement-breakpoint
+CREATE INDEX "project_environment_project_idx" ON "project_environments" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "project_environment_status_idx" ON "project_environments" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "project_environment_type_idx" ON "project_environments" USING btree ("type");--> statement-breakpoint
+CREATE INDEX "project_members_project_idx" ON "project_members" USING btree ("project_id");--> statement-breakpoint
+CREATE INDEX "project_members_workspace_member_idx" ON "project_members" USING btree ("organization_member_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "project_settings_project_unique" ON "project_settings" USING btree ("project_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "projects_workspace_slug_unique" ON "projects" USING btree ("workspace_id",lower("slug"));--> statement-breakpoint
+CREATE INDEX "projects_workspace_idx" ON "projects" USING btree ("workspace_id");--> statement-breakpoint
+CREATE INDEX "projects_status_idx" ON "projects" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "projects_visibility_idx" ON "projects" USING btree ("visibility");--> statement-breakpoint
+CREATE UNIQUE INDEX "provider_connection_unique" ON "provider_connections" USING btree ("organization_id","provider","account_id");--> statement-breakpoint
+CREATE INDEX "provider_connection_org_idx" ON "provider_connections" USING btree ("organization_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "workspace_slug_unique" ON "workspaces" USING btree ("organization_id",lower("slug"));--> statement-breakpoint
 CREATE UNIQUE INDEX "workspace_default_unique" ON "workspaces" USING btree ("organization_id","is_default");--> statement-breakpoint
 CREATE INDEX "workspace_org_idx" ON "workspaces" USING btree ("organization_id");--> statement-breakpoint
