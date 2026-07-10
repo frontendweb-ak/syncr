@@ -44,8 +44,9 @@ export function createApp(config: AppConfig) {
   // Logger
   const baseLogger = createLogger(config);
   app.use("*", loggerMiddleware(baseLogger));
-  const email = createEmailModule(process.env).email;
 
+  // email provider
+  const email = createEmailModule(process.env).email;
   app.use("*", async (c, next) => {
     c.set("email", email);
     await next();

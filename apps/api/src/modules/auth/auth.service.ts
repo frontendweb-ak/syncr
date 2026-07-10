@@ -1,5 +1,5 @@
-import type { EmailService } from "@syncr/notifications";
-import {
+import { verifyEmailTemplate, type EmailService } from "@syncr/notifications";
+import type {
   DeviceInput,
   LoginAttemptInput,
   LoginMethod,
@@ -10,7 +10,7 @@ import {
   UserStatus,
 } from "@syncr/types";
 import type { Logger } from "pino";
-import { type AppConfig, PLATFORM } from "../../config";
+import { PLATFORM, type AppConfig } from "../../config";
 import type { RepoContext } from "../../core/base/base.repo";
 import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
@@ -18,11 +18,12 @@ import type { JwtService } from "../../lib";
 import { UserService } from "../user";
 import type { User as DbUser } from "../user/user.repo";
 import { CredentialService } from "./credential/credential.service";
-import { Device, DeviceService } from "./device";
+import { DeviceService, type Device } from "./device";
 import { assertPasswordStrength } from "./password/password-strength";
 import { PasswordService } from "./password/password.service";
 import { AuthProviderService } from "./provider";
 import { LoginHistoryService, SecurityEventService } from "./security";
+
 const LOCKOUT_THRESHOLD = PLATFORM.AUTH_MAX_LOGIN_ATTEMPTS ?? 5;
 const LOCKOUT_MINUTES = PLATFORM.AUTH_LOCKOUT_MINUTES ?? 15;
 
@@ -79,17 +80,19 @@ export class AuthService extends LoggedService {
       providerId: email,
     });
 
-    const verificationUrl =
-  `${this.config.APP_URL}/verify-email?token=${token}`;
-    await this.email.send(
-     to: user.email,
-  subject: "Verify your email",
-  html: verificationHtml,
-  text: verificationUrl,
-  tags: {
-    type: "email_verification",
-  },
-    );
+    const token = await this.jwt.signEmailVerificationToken(user.id);
+    const verificationUrl = `${this.config.APP_URL}/auth/verify-email?token=${token}`;
+    const template = verifyEmailTemplate({ name: user.name, verificationUrl });
+
+    const result = await this.email.send({
+      to: user.email,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      tags: { type: "email_verification" },
+    });
+
+    this.logger?.debug({ result }, "Email sent");
 
     return {
       id: user.id,
@@ -224,6 +227,21 @@ export class AuthService extends LoggedService {
       "PASSWORD",
       false,
     );
+  }
+
+  // auth.service.ts
+
+  async verifyEmail(token?: string): Promise<void> {
+    if (!token) throw Errors.auth.tokenMissing();
+
+    const payload = await this.jwt.verifyEmailVerificationToken(token);
+    const user = await this.userService.getById(payload.sub);
+    if (!user) throw Errors.user.notFound();
+
+    if (user.emailVerified) return;
+
+    await this.userService.verifyEmail(user.id);
+    this.logger?.info({ userId: user.id }, "Email verified");
   }
 
   // Private

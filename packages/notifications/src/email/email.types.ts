@@ -68,3 +68,9 @@ export class EmailTransientError extends EmailSendError {
     this.name = "EmailTransientError";
   }
 }
+
+export interface EmailTemplate {
+  subject: string;
+  html: string;
+  text: string;
+}

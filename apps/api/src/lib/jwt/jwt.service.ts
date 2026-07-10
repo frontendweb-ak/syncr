@@ -10,7 +10,32 @@ import { Errors } from "../../errors";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./jwt.types";
 
 const ALGORITHM = "HS256";
-type AnyTokenPayload = AccessTokenPayload | RefreshTokenPayload;
+export type TokenType =
+  | "access"
+  | "refresh"
+  | "email_verification"
+  | "password_reset"
+  | "magic_link";
+export interface EmailVerificationPayload {
+  sub: string;
+  type: "email_verification";
+}
+
+export interface PasswordResetPayload {
+  sub: string;
+  type: "password_reset";
+}
+
+export interface MagicLinkPayload {
+  sub: string;
+  type: "magic_link";
+}
+type AnyTokenPayload =
+  | AccessTokenPayload
+  | RefreshTokenPayload
+  | EmailVerificationPayload
+  | PasswordResetPayload
+  | MagicLinkPayload;
 export class JwtService {
   private readonly accessSecret: Uint8Array;
   private readonly refreshSecret: Uint8Array;
@@ -197,5 +222,48 @@ export class JwtService {
     }
 
     throw error;
+  }
+
+  async signEmailVerificationToken(userId: string): Promise<string> {
+    return new SignJWT({
+      type: "email_verification",
+    })
+      .setProtectedHeader({
+        alg: ALGORITHM,
+        typ: "JWT",
+      })
+      .setSubject(userId)
+      .setIssuer(this.config.JWT_ISSUER)
+      .setAudience(this.config.JWT_AUDIENCE)
+      .setIssuedAt()
+      .setExpirationTime("24h")
+      .sign(this.accessSecret);
+  }
+
+  async verifyEmailVerificationToken(
+    token: string,
+  ): Promise<EmailVerificationPayload> {
+    try {
+      const { payload } = await jwtVerify(token, this.accessSecret, {
+        issuer: this.config.JWT_ISSUER,
+        audience: this.config.JWT_AUDIENCE,
+        algorithms: [ALGORITHM],
+      });
+
+      if (payload.type !== "email_verification") {
+        throw Errors.auth.tokenInvalid();
+      }
+
+      if (!payload.sub) {
+        throw Errors.auth.tokenInvalid();
+      }
+
+      return {
+        sub: payload.sub,
+        type: "email_verification",
+      };
+    } catch (error) {
+      this.handleJoseError(error);
+    }
   }
 }

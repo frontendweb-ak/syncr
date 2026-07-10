@@ -45,4 +45,15 @@ export const authController = {
 
     return ok(c, result);
   },
+
+  async verifyEmail(c: AppCtx) {
+    console.log("C", c.req.query("token"));
+    const token = c.req.query("token");
+    const service = makeAuthService(c);
+    await service.verifyEmail(token);
+    return ok(c, {
+      success: true,
+      message: "Email verified successfully.",
+    });
+  },
 };

@@ -8,7 +8,10 @@ export const Password = z
   .string({ message: "Password is required" })
   .min(8, { message: "Password must be at least 8 characters long" })
   .max(128, { message: "Password cannot exceed 128 characters" });
-
+export const JwtToken = z
+  .string({ message: "Token is required" })
+  .trim()
+  .min(1, { message: "Token is required" });
 export const Phone = z
   .string()
   .trim()
@@ -30,8 +33,13 @@ export const RegisterSchema = z.object({
   password: Password,
 });
 
-
 export const LoginSchema = z.object({
   email: Email,
   password: Password,
 });
+
+export const VerifyEmailQuerySchema = z.object({
+  token: z.string().min(1, "Token is required"),
+});
+
+export type VerifyEmailQuery = z.infer<typeof VerifyEmailQuerySchema>;

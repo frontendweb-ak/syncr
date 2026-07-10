@@ -28,9 +28,9 @@ const RawEnvSchema = z.object({
     .default("development"),
   EMAIL_PROVIDER: EmailProviderName.optional(),
 
-  EMAIL_FROM_ADDRESS: z.string().email(),
+  EMAIL_FROM_ADDRESS: z.email(),
   EMAIL_FROM_NAME: z.string().min(1).default("Syncr"),
-  EMAIL_REPLY_TO: z.string().email().optional(),
+  EMAIL_REPLY_TO: z.email().optional(),
 
   // SES
   AWS_REGION: z.string().optional(),

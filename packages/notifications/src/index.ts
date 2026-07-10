@@ -8,3 +8,4 @@ export * from "./email/email.module";
 export * from "./email/email.service";
 
 export * from "./email/providers/email.provider";
+export * from "./email/templates/verify-email.template";

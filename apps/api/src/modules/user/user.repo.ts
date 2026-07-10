@@ -109,7 +109,7 @@ export class UserRepo extends BaseRepo {
   async verifyEmail(id: string): Promise<void> {
     await this.db
       .update(users)
-      .set({ emailVerified: true, updatedAt: new Date() })
+      .set({ status: "ACTIVE", emailVerified: true, updatedAt: new Date() })
       .where(eq(users.id, id));
   }
 
