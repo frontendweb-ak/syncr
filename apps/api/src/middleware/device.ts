@@ -12,10 +12,10 @@ export const deviceMiddleware = createMiddleware<AppContext>(
       c.req.header("x-real-ip") ??
       c.req.header("x-forwarded-for")?.split(",")[0]?.trim();
 
-    const deviceId = c.req.header("x-device-id");
+    const deviceId = c.req.header("X-Device-Fingerprint");
 
     const device: DeviceInput = {
-      deviceId: deviceId ?? crypto.randomUUID(),
+      fingerprint: deviceId ?? crypto.randomUUID(),
       deviceType: parseDeviceType(c.req.header("x-device-type")),
       platform: c.req.header("x-platform"),
       osVersion: c.req.header("x-platform-version"),

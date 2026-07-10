@@ -4,9 +4,10 @@
     "skipLibCheck": true
   },
   "references": [
+    { "path": "apps/api" }
     { "path": "packages/db" },
+    { "path": "packages/notifications" },
     { "path": "packages/types" },
     { "path": "packages/validator" },
-    { "path": "apps/api" }
   ]
 }

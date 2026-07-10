@@ -25,6 +25,7 @@
     "@syncr/db": "workspace:*",
     "@syncr/types": "workspace:*",
     "@syncr/validator": "workspace:*",
+    "@syncr/notifications": "workspace:*",
     "bcryptjs": "^3.0.3",
     "better-auth": "^1.6.23",
     "dotenv": "^17.4.2",

@@ -1,6 +1,7 @@
 // src/types/env.ts
 
 import type { Db } from "@syncr/db";
+import type { EmailService } from "@syncr/notifications";
 import { DeviceInput } from "@syncr/types";
 import type { Context } from "hono";
 import type { Logger } from "pino";
@@ -31,6 +32,8 @@ export type AppVariables = {
   betterAuth: BetterAuthState;
 
   device: DeviceInput;
+
+  email: EmailService;
 };
 
 export type AppContext = {

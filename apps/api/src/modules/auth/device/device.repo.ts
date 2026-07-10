@@ -20,7 +20,6 @@ export class DeviceRepo extends BaseRepo {
     const rows = await this.db.insert(devices).values(data).returning();
     return this.firstOrThrow(rows, Errors.device.createFailed());
   }
-
   async findById(id: string): Promise<Device | null> {
     const [device] = await this.db
       .select()
@@ -30,7 +29,6 @@ export class DeviceRepo extends BaseRepo {
 
     return device ?? null;
   }
-
   async findByRefreshTokenHash(hash: string): Promise<Device | null> {
     const [device] = await this.db
       .select()
@@ -59,7 +57,6 @@ export class DeviceRepo extends BaseRepo {
 
     return device ?? null;
   }
-
   async findByFingerprint(
     userId: string,
     fingerprint: string,
@@ -74,7 +71,6 @@ export class DeviceRepo extends BaseRepo {
 
     return this.first(rows);
   }
-
   async findByUserId(
     userId: string,
     status?: Device["status"],
@@ -88,7 +84,6 @@ export class DeviceRepo extends BaseRepo {
           : eq(devices.userId, userId),
       );
   }
-
   async findByIdOrThrow(id: string): Promise<Device> {
     const rows = await this.db
       .select()
@@ -108,7 +103,6 @@ export class DeviceRepo extends BaseRepo {
       })
       .where(and(eq(devices.id, id), eq(devices.status, "ACTIVE")));
   }
-
   async revoke(id: string): Promise<void> {
     await this.db
       .update(devices)
@@ -123,7 +117,6 @@ export class DeviceRepo extends BaseRepo {
       })
       .where(eq(devices.id, id));
   }
-
   async revokeAllByUser(userId: string): Promise<number> {
     const result = await this.db
       .update(devices)
@@ -143,7 +136,6 @@ export class DeviceRepo extends BaseRepo {
 
     return result.length;
   }
-
   async deleteExpired(): Promise<number> {
     const deleted = await this.db
       .delete(devices)
@@ -156,14 +148,12 @@ export class DeviceRepo extends BaseRepo {
 
     return deleted.length;
   }
-
   async findActiveByUserId(userId: string): Promise<Device[]> {
     return this.db
       .select()
       .from(devices)
       .where(and(eq(devices.userId, userId), eq(devices.status, "ACTIVE")));
   }
-
   async findByUserIdAndFingerprint(
     userId: string,
     fingerprint: string,
@@ -182,7 +172,6 @@ export class DeviceRepo extends BaseRepo {
 
     return device ?? null;
   }
-
   async countActiveByUserId(userId: string): Promise<number> {
     const result = await this.db
       .select({
@@ -212,7 +201,6 @@ export class DeviceRepo extends BaseRepo {
 
     return this.firstOrThrow(rows, Errors.device.notFound());
   }
-
   async updatePushToken(id: string, pushToken: string | null): Promise<void> {
     await this.db
       .update(devices)
@@ -222,7 +210,6 @@ export class DeviceRepo extends BaseRepo {
       })
       .where(eq(devices.id, id));
   }
-
   async updateDeviceInfo(
     id: string,
     data: {
@@ -239,7 +226,6 @@ export class DeviceRepo extends BaseRepo {
       })
       .where(eq(devices.id, id));
   }
-
   async revokeByRefreshToken(refreshTokenHash: string): Promise<void> {
     await this.db
       .update(devices)
@@ -253,7 +239,6 @@ export class DeviceRepo extends BaseRepo {
       })
       .where(eq(devices.refreshTokenHash, refreshTokenHash));
   }
-
   async expire(): Promise<number> {
     const rows = await this.db
       .update(devices)
@@ -294,18 +279,6 @@ export class DeviceRepo extends BaseRepo {
     if (!row) throw new Error(`Device ${id} not found`);
     return row.tokenVersion;
   }
-
-  async deviceExist(userId: string, fingerprint: string): Promise<boolean> {
-    const rows = await this.db
-      .select({ id: devices.id })
-      .from(devices)
-      .where(
-        and(eq(devices.userId, userId), eq(devices.fingerprint, fingerprint)),
-      )
-      .limit(1);
-    return rows.length > 0;
-  }
-
   async update(id: string, data: Partial<NewDevice>): Promise<Device> {
     const rows = await this.db
       .update(devices)
@@ -315,7 +288,6 @@ export class DeviceRepo extends BaseRepo {
 
     return this.firstOrThrow(rows, Errors.device.notFound());
   }
-
   async deleteRevokedOlderThan(days: number): Promise<number> {
     const cutoff = new Date(Date.now() - days * 86400000);
 

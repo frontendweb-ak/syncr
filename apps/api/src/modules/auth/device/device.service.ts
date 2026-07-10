@@ -103,4 +103,25 @@ export class DeviceService extends LoggedService {
     await this.repo.expire();
     return this.repo.deleteExpired();
   }
+
+  async findByFingerprint(
+    userId: string,
+    fingerprint: string,
+  ): Promise<Device | null> {
+    return this.repo.findByUserIdAndFingerprint(userId, fingerprint);
+  }
+
+  async updateSession(
+    deviceId: string,
+    data: Partial<NewDevice>,
+  ): Promise<Device> {
+    return this.repo.update(deviceId, {
+      ...data,
+      lastActiveAt: new Date(),
+      lastRefreshAt: new Date(),
+      revokedAt: null,
+      revokeReason: null,
+      status: "ACTIVE",
+    });
+  }
 }

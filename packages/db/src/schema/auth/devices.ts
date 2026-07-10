@@ -18,11 +18,9 @@ export const devices = pgTable(
   "devices",
   {
     id: uuid("device_id").defaultRandom().primaryKey(),
-
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-
     deviceType: deviceTypeEnum("device_type").default("WEB").notNull(),
 
     platform: text("platform"), // android | ios | web
@@ -38,7 +36,6 @@ export const devices = pgTable(
 
     // Authentication
     refreshTokenHash: text("refresh_token_hash"),
-
     // Per-device session-invalidation counter. Every access token issued
     // for THIS device is signed with this value at issuance time (see
     // jwt.service.ts); authMiddleware compares the token's claim against

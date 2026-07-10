@@ -1,7 +1,7 @@
 import type { DeviceType } from "./status";
 
 export interface DeviceInput {
-  deviceId: string;
+  fingerprint: string;
   deviceType: DeviceType;
   platform?: string;
   osVersion?: string;

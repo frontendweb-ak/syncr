@@ -1,4 +1,4 @@
-import { created } from "../../core/base/base.controller";
+import { created, ok } from "../../core/base/base.controller";
 import type { AppCtx } from "../../types/env";
 import { AuthService } from "./auth.service";
 
@@ -11,6 +11,7 @@ function makeAuthService(c: AppCtx) {
     c.get("jwt"),
     c.get("config"),
     c.get("logger"),
+    c.get("email"),
   );
 }
 
@@ -29,5 +30,19 @@ export const authController = {
       console.log("err", err);
       throw err;
     }
+  },
+
+  // login
+  async loginEmail(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+
+    const result = await service.loginEmail({
+      email: body.email,
+      password: body.password,
+      device: c.get("device"),
+    });
+
+    return ok(c, result);
   },
 };

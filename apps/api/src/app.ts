@@ -1,4 +1,5 @@
 import { createDb } from "@syncr/db";
+import { createEmailModule } from "@syncr/notifications";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
@@ -43,7 +44,12 @@ export function createApp(config: AppConfig) {
   // Logger
   const baseLogger = createLogger(config);
   app.use("*", loggerMiddleware(baseLogger));
+  const email = createEmailModule(process.env).email;
 
+  app.use("*", async (c, next) => {
+    c.set("email", email);
+    await next();
+  });
   /**
    * --------------------------------------------------------------------------
    * Request Timing

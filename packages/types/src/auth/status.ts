@@ -55,6 +55,7 @@ export const LOGIN_FAILURE_REASON = [
   "ACCOUNT_LOCKED",
   "RATE_LIMITED",
   "PROVIDER_ERROR",
+  "EAMIL_NOT_VERIFIED",
 ] as const;
 export type LoginFailureReason = (typeof LOGIN_FAILURE_REASON)[number];
 

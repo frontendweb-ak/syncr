@@ -1,9 +1,14 @@
 import type { DeviceInput } from "./device";
+import type {
+  LoginFailureReason,
+  LoginMethod,
+  SecurityEventType,
+} from "./status";
 
 export type SignInInput = {
   email: string;
   password: string;
-  device?: DeviceInput;
+  device: DeviceInput;
 };
 
 export type SignUpInput = {
@@ -33,3 +38,22 @@ export type RefreshTokenPayload = {
   sid: string;
   type: "refresh";
 };
+
+export interface LoginAttemptInput {
+  userId?: string;
+  deviceId?: string;
+  loginIdentifier?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  loginMethod: LoginMethod;
+  success: boolean;
+  failureReason?: LoginFailureReason;
+}
+
+export interface SecurityEventInput {
+  userId?: string;
+  deviceId?: string;
+  eventType: SecurityEventType;
+  ipAddress?: string;
+  metadata?: Record<string, unknown>;
+}
