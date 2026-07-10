@@ -1,7 +1,7 @@
 import { authCredentials } from "@syncr/db";
 import { eq, type InferInsertModel, type InferSelectModel } from "drizzle-orm";
-import { BaseRepo } from "../../core/base/base.repo";
-import { Errors } from "../../errors";
+import { BaseRepo } from "../../../core/base/base.repo";
+import { Errors } from "../../../errors";
 
 export type AuthCredential = InferSelectModel<typeof authCredentials>;
 export type NewAuthCredential = InferInsertModel<typeof authCredentials>;
@@ -10,7 +10,7 @@ export type FailedAttempt = {
   threshold: number;
   lockoutMinutes: number;
 };
-export class AuthRepo extends BaseRepo {
+export class CredentialRepo extends BaseRepo {
   async create(data: NewAuthCredential): Promise<AuthCredential> {
     const rows = await this.db.insert(authCredentials).values(data).returning();
     return this.firstOrThrow(rows, Errors.auth.passwordRequired());
@@ -108,5 +108,70 @@ export class AuthRepo extends BaseRepo {
 
   async unlock(userId: string): Promise<void> {
     await this.resetFailedAttempts(userId);
+  }
+
+  async existsCredential(userId: string): Promise<boolean> {
+    const row = await this.db
+      .select({ id: authCredentials.id })
+      .from(authCredentials)
+      .where(eq(authCredentials.userId, userId))
+      .limit(1);
+
+    return row.length > 0;
+  }
+
+  async enableMfa(
+    userId: string,
+    type: AuthCredential["mfaType"],
+    secret: string,
+  ): Promise<void> {
+    await this.db
+      .update(authCredentials)
+      .set({
+        mfaEnabled: true,
+        mfaType: type,
+        mfaSecretEncrypted: secret,
+        updatedAt: new Date(),
+      })
+      .where(eq(authCredentials.userId, userId));
+  }
+
+  async disableMfa(userId: string): Promise<void> {
+    await this.db
+      .update(authCredentials)
+      .set({
+        mfaEnabled: false,
+        mfaType: null,
+        mfaSecretEncrypted: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(authCredentials.userId, userId));
+  }
+
+  async isLocked(userId: string): Promise<boolean> {
+    const credential = await this.findByUserId(userId);
+
+    if (!credential) {
+      throw Errors.auth.passwordRequired();
+    }
+
+    return !!(credential.lockedUntil && credential.lockedUntil > new Date());
+  }
+
+  async clearLock(userId: string): Promise<void> {
+    await this.db
+      .update(authCredentials)
+      .set({
+        failedLoginAttempts: 0,
+        lockedUntil: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(authCredentials.userId, userId));
+  }
+
+  async delete(userId: string): Promise<void> {
+    await this.db
+      .delete(authCredentials)
+      .where(eq(authCredentials.userId, userId));
   }
 }
