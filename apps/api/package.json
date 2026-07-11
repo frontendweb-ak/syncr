@@ -27,7 +27,6 @@
     "@syncr/types": "workspace:*",
     "@syncr/validator": "workspace:*",
     "bcryptjs": "^3.0.3",
-    "better-auth": "^1.6.23",
     "dotenv": "^17.4.2",
     "drizzle-orm": "0.45.2",
     "hono": "^4.9.7",

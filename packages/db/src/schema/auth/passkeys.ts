@@ -8,13 +8,14 @@ import {
   text,
   timestamp,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { users } from "./users";
 export const passkeys = pgTable(
   "passkeys",
   {
-    id: text("id").primaryKey(),
-    userId: text("user_id")
+    id: uuid("id").primaryKey(),
+    userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     credentialId: text("credential_id").notNull(),

@@ -1,50 +1,43 @@
+import { sql } from "drizzle-orm";
 import {
   index,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
-
 import { apiKeyStatusEnum, apiKeyTypeEnum } from "../../enums";
 import { users } from "../auth/users";
+import { timestamps } from "../common";
 import { organizations } from "../organization";
 
 export const apiKeys = pgTable(
   "api_keys",
   {
-    id: text("id").primaryKey(),
+    id: uuid("api_key_id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
+    description: text("description"),
     prefix: text("prefix").notNull(),
     secretHash: text("secret_hash").notNull(),
     type: apiKeyTypeEnum("type").notNull().default("PERSONAL"),
     status: apiKeyStatusEnum("status").notNull().default("ACTIVE"),
-    userId: text("user_id").references(() => users.id, {
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id").references(() => organizations.id, {
       onDelete: "cascade",
-    }),
-    organizationId: text("organization_id").references(() => organizations.id, {
-      onDelete: "cascade",
-    }),
-    expiresAt: timestamp("expires_at", {
-      withTimezone: true,
-    }),
-    lastUsedAt: timestamp("last_used_at", {
-      withTimezone: true,
     }),
     lastUsedIp: text("last_used_ip"),
-    createdAt: timestamp("created_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedBy: uuid("revoked_by"),
+    revokeReason: text("revoke_reason"),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdBy: uuid("created_by"),
+    metadata: jsonb("metadata")
+      .default(sql`'{}'::jsonb`)
       .notNull(),
-    updatedAt: timestamp("updated_at", {
-      withTimezone: true,
-    })
-      .defaultNow()
-      .notNull(),
-    revokedAt: timestamp("revoked_at", {
-      withTimezone: true,
-    }),
+    ...timestamps,
   },
   (table) => [
     uniqueIndex("api_keys_prefix_uidx").on(table.prefix),
