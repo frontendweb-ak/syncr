@@ -66,7 +66,7 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     throw Errors.auth.tokenInvalid();
   }
 
-  if (userRow.tokenVersion !== payload.tokenVersion) {
+  if (userRow.tokenVersion !== payload.userTokenVersion) {
     // This token was issued before the user's last "log out everywhere"
     // / password change / admin-forced suspension. The JWT signature is
     // perfectly valid; it is simply no longer authoritative.
@@ -95,7 +95,7 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     throw Errors.device.notFound();
   }
 
-  if (deviceRow.tokenVersion !== payload.tokenVersion) {
+  if (deviceRow.tokenVersion !== payload.deviceTokenVersion) {
     // This specific device was revoked (single-device logout, or
     // refresh-token-theft detection per Technical Design §3.4) since
     // this access token was issued.

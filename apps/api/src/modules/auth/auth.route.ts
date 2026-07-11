@@ -17,24 +17,46 @@ import {
 } from "@syncr/validator";
 import { Hono } from "hono";
 import { authMiddleware } from "../../middleware/auth";
+import { rateLimitMiddleware } from "../../middleware/rate-limit";
 import { validate, validateQuery } from "../../middleware/validate";
 import type { AppContext } from "../../types/env";
+import { getClientIp } from "../../utils/network";
 import { authController } from "./auth.controller";
 
 const auth = new Hono<AppContext>();
 
-auth.post("/register", validate(RegisterSchema), authController.register);
-auth.post("/login", validate(LoginSchema), authController.loginEmail);
+auth.post(
+  "/register",
+  rateLimitMiddleware("REGISTER"),
+  validate(RegisterSchema),
+  authController.register,
+);
+auth.post(
+  "/login",
+  rateLimitMiddleware("LOGIN", async (c) => {
+    const body = await c.req.json();
+    return `login:${getClientIp(c)}:${body.email.toLowerCase()}`;
+  }),
+  validate(LoginSchema),
+  authController.loginEmail,
+);
 auth.get(
   "/verify-email",
+  rateLimitMiddleware("VERIFY_EMAIL"),
   validateQuery(VerifyEmailQuerySchema),
   authController.verifyEmail,
 );
 
-auth.post("/refresh", validate(RefreshTokenSchema), authController.refresh);
+auth.post(
+  "/refresh",
+  rateLimitMiddleware("REFRESH_TOKEN"),
+  validate(RefreshTokenSchema),
+  authController.refresh,
+);
 
 auth.post(
   "/forgot-password",
+  rateLimitMiddleware("FORGOT_PASSWORD"),
   validate(ForgotPasswordSchema),
   authController.forgotPassword,
 );

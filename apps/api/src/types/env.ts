@@ -2,7 +2,7 @@
 
 import type { Db } from "@syncr/db";
 import type { EmailService } from "@syncr/notifications";
-import { DeviceInput } from "@syncr/types";
+import type { DeviceInput } from "@syncr/types";
 import type { Context } from "hono";
 import type { Logger } from "pino";
 import type { AppConfig } from "../config";

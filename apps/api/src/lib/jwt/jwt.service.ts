@@ -5,11 +5,11 @@ import {
   jwtVerify,
   SignJWT,
 } from "jose";
-import type { AppConfig } from "../../config";
+import { type AppConfig, JWT } from "../../config";
 import { Errors } from "../../errors";
 import type { AccessTokenPayload, RefreshTokenPayload } from "./jwt.types";
 
-const ALGORITHM = "HS256";
+const ALGORITHM = JWT.ALGORITHM;
 export type TokenType =
   | "access"
   | "refresh"
@@ -44,6 +44,15 @@ type AnyTokenPayload =
   | PasswordResetPayload
   | MagicLinkPayload
   | MfaChallengePayload;
+
+ export interface JwtTokenPair {
+   accessToken: string;
+   refreshToken: string;
+   tokenType: "Bearer";
+   expiresIn: number;
+   accessTokenExpiresAt: Date;
+   refreshTokenExpiresAt: Date;
+ }
 export class JwtService {
   private readonly accessSecret: Uint8Array;
   private readonly refreshSecret: Uint8Array;
@@ -75,36 +84,42 @@ export class JwtService {
       sub: payload.sub,
       sessionId: payload.sessionId,
       deviceId: payload.deviceId,
-      tokenVersion: payload.tokenVersion,
+      userTokenVersion: payload.userTokenVersion,
+      deviceTokenVersion: payload.deviceTokenVersion,
       type: "refresh",
     });
+
+    const expiresAt = Date.now() + JWT.EXPIRY_SECONDS.ACCESS * 1000;
 
     return {
       accessToken,
       refreshToken,
+      tokenType: "Bearer",
+      expiresIn: JWT.EXPIRY_SECONDS.ACCESS,
+      expiresAt,
     };
   }
   /**
    * Create Access Token
    */
-  async signAccessToken(payload: AccessTokenPayload): Promise<string> {
+  async signAccessToken(payload: AccessTokenPayload) {
     return new SignJWT({
       sessionId: payload.sessionId,
       deviceId: payload.deviceId,
-      tokenVersion: payload.tokenVersion,
+      userTokenVersion: payload.userTokenVersion,
+      deviceTokenVersion: payload.deviceTokenVersion,
       role: payload.role,
       type: payload.type,
       ...(payload.impersonatorId
         ? { impersonatorId: payload.impersonatorId }
         : {}),
     })
-      .setProtectedHeader({ alg: ALGORITHM, typ: "JWT" })
+      .setProtectedHeader({ alg: ALGORITHM, typ: JWT.TYPE, kid: JWT.KEY_ID })
       .setSubject(payload.sub)
       .setIssuer(this.config.JWT_ISSUER)
       .setAudience(this.config.JWT_AUDIENCE)
       .setIssuedAt()
-
-      .setExpirationTime(this.config.ACCESS_TOKEN_EXPIRES_IN)
+      .setExpirationTime(JWT.EXPIRY.ACCESS)
       .sign(this.accessSecret);
   }
 
@@ -115,18 +130,16 @@ export class JwtService {
     return new SignJWT({
       sessionId: payload.sessionId,
       deviceId: payload.deviceId,
-      tokenVersion: payload.tokenVersion,
+      userTokenVersion: payload.userTokenVersion,
+      deviceTokenVersion: payload.deviceTokenVersion,
       type: payload.type,
     })
-      .setProtectedHeader({
-        alg: ALGORITHM,
-        typ: "JWT",
-      })
+      .setProtectedHeader({ alg: ALGORITHM, typ: "JWT" })
       .setSubject(payload.sub)
       .setIssuer(this.config.JWT_ISSUER)
       .setAudience(this.config.JWT_AUDIENCE)
       .setIssuedAt()
-      .setExpirationTime(this.config.REFRESH_TOKEN_EXPIRES_IN)
+      .setExpirationTime(JWT.EXPIRY.REFRESH)
       .sign(this.refreshSecret);
   }
 
@@ -138,10 +151,11 @@ export class JwtService {
       const { payload } = await jwtVerify(token, this.accessSecret, {
         issuer: this.config.JWT_ISSUER,
         audience: this.config.JWT_AUDIENCE,
-        algorithms: [ALGORITHM],
+        algorithms: [JWT.ALGORITHM],
+        clockTolerance: JWT.CLOCK_TOLERANCE_SECONDS,
       });
 
-      if (payload.type !== "access") {
+      if (payload.type !== JWT.TOKEN_TYPE.ACCESS) {
         throw Errors.auth.tokenInvalid();
       }
 
@@ -151,7 +165,8 @@ export class JwtService {
         sub: payload.sub,
         sessionId: payload.sessionId as string,
         deviceId: payload.deviceId as string,
-        tokenVersion: payload.tokenVersion as number,
+        userTokenVersion: payload.userTokenVersion as number,
+        deviceTokenVersion: payload.deviceTokenVersion as number,
         role: payload.role as string,
         ...(payload.impersonatorId
           ? { impersonatorId: payload.impersonatorId as string }
@@ -182,7 +197,8 @@ export class JwtService {
         sub: payload.sub,
         sessionId: payload.sessionId as string,
         deviceId: payload.deviceId as string,
-        tokenVersion: payload.tokenVersion as number,
+        userTokenVersion: payload.userTokenVersion as number,
+        deviceTokenVersion: payload.deviceTokenVersion as number,
         type: "refresh",
       };
     } catch (error) {
@@ -244,7 +260,7 @@ export class JwtService {
       .setIssuer(this.config.JWT_ISSUER)
       .setAudience(this.config.JWT_AUDIENCE)
       .setIssuedAt()
-      .setExpirationTime("24h")
+      .setExpirationTime(JWT.EXPIRY.EMAIL_VERIFICATION)
       .sign(this.accessSecret);
   }
 
@@ -284,15 +300,12 @@ export class JwtService {
       deviceId: payload.deviceId,
       type: "mfa_challenge",
     })
-      .setProtectedHeader({
-        alg: ALGORITHM,
-        typ: "JWT",
-      })
+      .setProtectedHeader({ alg: ALGORITHM, typ: "JWT" })
       .setSubject(payload.sub)
       .setIssuer(this.config.JWT_ISSUER)
       .setAudience(this.config.JWT_AUDIENCE)
       .setIssuedAt()
-      .setExpirationTime("5m")
+      .setExpirationTime(JWT.EXPIRY.MFA_CHALLENGE)
       .sign(this.accessSecret);
   }
 

@@ -1,11 +1,11 @@
 // src/modules/auth/oauth/google.service.ts
 
-import { createRemoteJWKSet, errors as JoseErrors, jwtVerify } from 'jose'
-import { type AppConfig, PLATFORM } from '../../../config'
-import { Errors } from '../../../errors'
+import { createRemoteJWKSet, errors as JoseErrors, jwtVerify } from "jose";
+import { type AppConfig, OAUTH } from "../../../config";
+import { Errors } from "../../../errors";
 
-const GOOGLE_JWKS_URL = PLATFORM.google.GOOGLE_JWKS_URL
-const GOOGLE_ISSUER = PLATFORM.google.GOOGLE_ISSUERS
+const GOOGLE_JWKS_URL = OAUTH.GOOGLE.JWKS_URL;
+const GOOGLE_ISSUER = OAUTH.GOOGLE.ISSUERS;
 const googleJwks = createRemoteJWKSet(new URL(GOOGLE_JWKS_URL))
 
 export interface GoogleIdentity {

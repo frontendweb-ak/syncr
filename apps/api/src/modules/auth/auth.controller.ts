@@ -108,7 +108,10 @@ export const authController = {
       currentPassword: body.currentPassword,
       newPassword: body.newPassword,
     });
-    return ok(c, { success: true });
+    return ok(c, {
+      success: true,
+      message: "Password changed successfully. Please sign in again.",
+    });
   },
 
   // logout
@@ -121,11 +124,12 @@ export const authController = {
       "Set-Cookie",
       "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/refresh; Max-Age=0",
     );
-    return ok(c, { success: true });
+    return ok(c, { success: true,messsage:"You have successfully logged out" });
   },
 
   async logoutAll(c: AppCtx) {
     const auth = c.get("auth");
+    console.log("AUTH", auth);
     const service = makeAuthService(c);
     await service.logoutAll(auth.sub);
     c.header(

@@ -18,7 +18,7 @@ import type {
   UserStatus,
 } from "@syncr/types";
 import type { Logger } from "pino";
-import { type AppConfig, PLATFORM } from "../../config";
+import { type AppConfig, AUTH, JWT } from "../../config";
 import type { RepoContext } from "../../core/base/base.repo";
 import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
@@ -35,8 +35,8 @@ import { PasswordService } from "./password/password.service";
 import { AuthProviderService } from "./provider";
 import { LoginHistoryService, SecurityEventService } from "./security";
 
-const LOCKOUT_THRESHOLD = PLATFORM.AUTH_MAX_LOGIN_ATTEMPTS ?? 5;
-const LOCKOUT_MINUTES = PLATFORM.AUTH_LOCKOUT_MINUTES ?? 15;
+const LOCKOUT_THRESHOLD = AUTH.MAX_LOGIN_ATTEMPTS ?? 5;
+const LOCKOUT_MINUTES = AUTH.LOCKOUT_MINUTES ?? 15;
 
 export class AuthService extends LoggedService {
   private readonly userService: UserService;
@@ -394,9 +394,7 @@ export class AuthService extends LoggedService {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    const expiresAt = new Date(
-      Date.now() + PLATFORM.SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
-    );
+    const expiresAt = new Date(Date.now() + JWT.EXPIRY_SECONDS.REFRESH * 1000);
     device = await this.deviceService.rotateRefreshToken(
       device.id,
       newHash,
@@ -408,24 +406,17 @@ export class AuthService extends LoggedService {
     //   this.rbac.getPrimaryRole(user.id),
     // ]);
 
-    const accessToken = await this.jwt.signAccessToken({
+    const tokens = await this.jwt.createTokenPair({
       sub: user.id,
       sessionId: device.id,
       deviceId: device.id,
-      tokenVersion: Math.min(user.tokenVersion, device.tokenVersion),
+      userTokenVersion: user.tokenVersion,
+      deviceTokenVersion: device.tokenVersion,
       role: "owner",
-      type: "access",
     });
-    const accessTokenExpiresAt =
-      Date.now() + PLATFORM.ACCESS_TOKEN_EXPIRY_SECONDS * 1000;
+
     return {
-      tokens: {
-        tokenType: "Bearer",
-        expiresIn: PLATFORM.ACCESS_TOKEN_EXPIRY_SECONDS,
-        accessToken,
-        refreshToken: newRefreshToken,
-        expiresAt: accessTokenExpiresAt,
-      },
+      tokens,
       session: {
         sessionId: device.id,
         deviceId: device.id,
@@ -477,11 +468,14 @@ export class AuthService extends LoggedService {
     const newHash = await this.passwordService.hash(input.newPassword);
     await this.credentialService.updatePassword(input.userId, newHash);
 
-    // Bump global tokenVersion — invalidates all OTHER devices immediately
-    // but NOT the current device (so the user isn't logged out of the
-    // session they just used to change their password — API Contract note
-    // on POST /change-password).
+    // Password changes invalidate every active session. Bump the user's
+    // tokenVersion so all access tokens become invalid immediately, then
+    // revoke every device session (refresh token). The user must sign in
+    // again on every device, including the current one.
     await this.userService.bumpTokenVersion(input.userId);
+
+    // Revoke every refresh token / session.
+    await this.deviceService.logoutAll(input.userId);
 
     await this.securityEvents.record({
       userId: input.userId,
@@ -592,9 +586,7 @@ export class AuthService extends LoggedService {
   ) {
     const refreshToken = this.generateRefreshToken();
     const tokenHash = await this.hashToken(refreshToken);
-    const expiresAt = new Date(
-      Date.now() + PLATFORM.SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
-    );
+    const expiresAt = new Date(Date.now() + JWT.EXPIRY_SECONDS.REFRESH * 1000);
 
     let isNewDevice = false;
 
@@ -622,7 +614,7 @@ export class AuthService extends LoggedService {
       isNewDevice = true;
       await this.deviceService.enforceDeviceLimit(
         user.id,
-        PLATFORM.MAX_DEVICES_PER_USER ?? 5,
+        AUTH.MAX_DEVICES_PER_USER ?? 5,
       );
 
       device = await this.deviceService.registerDevice({
@@ -642,13 +634,14 @@ export class AuthService extends LoggedService {
       });
     }
 
-    const accessToken = await this.jwt.signAccessToken({
+    const tokens = await this.jwt.createTokenPair({
       sub: user.id,
       sessionId: device.id,
       deviceId: device.id,
-      tokenVersion: Math.min(user.tokenVersion, device.tokenVersion),
+
+      userTokenVersion: user.tokenVersion,
+      deviceTokenVersion: device.tokenVersion,
       role: "owner",
-      type: "access",
     });
 
     const loginInput: LoginAttemptInput = {
@@ -693,17 +686,10 @@ export class AuthService extends LoggedService {
       status: user.status,
       emailVerified: user.emailVerified,
     };
-    const accessTokenExpiresAt =
-      Date.now() + PLATFORM.ACCESS_TOKEN_EXPIRY_SECONDS * 1000;
+
     return {
       user: authUser,
-      tokens: {
-        accessToken,
-        refreshToken,
-        expiresIn: PLATFORM.ACCESS_TOKEN_EXPIRY_SECONDS,
-        tokenType: "Bearer",
-        expiresAt: accessTokenExpiresAt,
-      },
+      tokens: tokens,
       session: {
         sessionId: device.id,
         deviceId: device.id,
