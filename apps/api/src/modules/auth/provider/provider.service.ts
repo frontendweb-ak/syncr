@@ -23,7 +23,6 @@ export class AuthProviderService extends LoggedService {
     this.repo = new AuthProviderRepo(db);
   }
 
-
   /**
    * Link an OAuth provider to a user.
    */
@@ -55,27 +54,16 @@ export class AuthProviderService extends LoggedService {
   /**
    * Returns true if the provider is linked.
    */
-  async isLinked(
-    provider: UserAuthProvider["provider"],
-    providerId: string,
-  ): Promise<boolean> {
+  async isLinked(provider: AuthProvider, providerId: string): Promise<boolean> {
     return this.repo.existsProvider(provider, providerId);
   }
 
   /**
    * Find linked provider by provider account.
    */
-  async getProvider(
-    provider: UserAuthProvider["provider"],
-    providerId: string,
-  ): Promise<UserAuthProvider> {
-    const linked = await this.repo.findByProvider(provider, providerId);
-
-    if (!linked) {
-      throw Errors.auth.providerNotFound();
-    }
-
-    return linked;
+  async getProvider(provider: AuthProvider, providerId: string) {
+    if (!provider || !providerId) throw Errors.user.invalidAuthProvider();
+    return await this.repo.findByProvider(provider, providerId);
   }
 
   /**

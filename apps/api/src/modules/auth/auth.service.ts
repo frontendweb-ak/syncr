@@ -1,6 +1,7 @@
-import { verifyEmailTemplate, type EmailService } from "@syncr/notifications";
+import { type EmailService, verifyEmailTemplate } from "@syncr/notifications";
 import type {
   DeviceInput,
+  GoogleAuthInput,
   LoginAttemptInput,
   LoginMethod,
   SecurityEventInput,
@@ -10,7 +11,7 @@ import type {
   UserStatus,
 } from "@syncr/types";
 import type { Logger } from "pino";
-import { PLATFORM, type AppConfig } from "../../config";
+import { type AppConfig, PLATFORM } from "../../config";
 import type { RepoContext } from "../../core/base/base.repo";
 import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
@@ -18,7 +19,8 @@ import type { JwtService } from "../../lib";
 import { UserService } from "../user";
 import type { User as DbUser } from "../user/user.repo";
 import { CredentialService } from "./credential/credential.service";
-import { DeviceService, type Device } from "./device";
+import { type Device, DeviceService } from "./device";
+import { GoogleOAuthService } from "./oauth/google.service";
 import { assertPasswordStrength } from "./password/password-strength";
 import { PasswordService } from "./password/password.service";
 import { AuthProviderService } from "./provider";
@@ -38,6 +40,8 @@ export class AuthService extends LoggedService {
   private readonly providerService: AuthProviderService;
   private readonly passwordService: PasswordService;
   private readonly email: EmailService;
+
+  private readonly googleService: GoogleOAuthService;
   constructor(
     db: RepoContext,
     jwt: JwtService,
@@ -48,7 +52,7 @@ export class AuthService extends LoggedService {
     super(db, jwt, config, logger);
     this.email = email;
 
-    //
+    // user
     this.userService = new UserService(db, jwt, config, logger);
     this.credentialService = new CredentialService(db, jwt, config, logger);
     this.deviceService = new DeviceService(db, jwt, config, logger);
@@ -56,6 +60,8 @@ export class AuthService extends LoggedService {
     this.loginHistory = new LoginHistoryService(db);
     this.passwordService = new PasswordService();
     this.providerService = new AuthProviderService(db, jwt, config, logger);
+    // google
+    this.googleService = new GoogleOAuthService(config);
   }
 
   // register
@@ -83,7 +89,6 @@ export class AuthService extends LoggedService {
     const token = await this.jwt.signEmailVerificationToken(user.id);
     const verificationUrl = `${this.config.APP_URL}/auth/verify-email?token=${token}`;
     const template = verifyEmailTemplate({ name: user.name, verificationUrl });
-
     const result = await this.email.send({
       to: user.email,
       subject: template.subject,
@@ -104,8 +109,69 @@ export class AuthService extends LoggedService {
     };
   }
 
-  async registerGithub() {}
+  async loginWithGoogle(input: GoogleAuthInput) {
+    const identity = await this.googleService.verifyIdToken(input.idToken);
 
+    // Check for existing user — by provider subject first, then email
+    const linkedGoogleUser = await this.providerService.getProvider(
+      "GOOGLE",
+      identity.subject,
+    );
+
+    let existingUser = linkedGoogleUser;
+
+    if (!existingUser) {
+      existingUser = await this.userService.getByEmail(identity.email);
+    }
+
+    if (existingUser) {
+      // Existing user — this is a login, not registration
+      await this.ensureActive(existingUser.status);
+
+      // Link Google provider if not already linked (account linking — PRD §2.3)
+      if (!linkedGoogleUser) {
+        await this.providerService.linkProvider({
+          userId: existingUser.id,
+          provider: "GOOGLE",
+          providerId: identity.subject,
+        });
+      }
+      return this.completeLogin(
+        this.db,
+        existingUser,
+        input.device,
+        "GOOGLE",
+        false,
+      );
+    }
+
+    // New user
+    if (!input.role) throw Errors.auth.tokenInvalid(); // role required for first registration
+
+    return this.withTransaction(async (tx) => {
+      const newUser = await this.userService.createUser({
+        name: identity.name ?? "AIM User",
+        email: identity.email?.toLowerCase(),
+        image: identity.pictureUrl,
+        status: identity.emailVerified ? "ACTIVE" : "PENDING",
+        emailVerified: identity.emailVerified,
+      });
+
+      await this.providerService.linkProvider({
+        userId: newUser.id,
+        provider: "GOOGLE",
+        providerId: identity.subject,
+      });
+
+      // if (!input.role) {
+      //   throw Errors.auth.roleRequired(); // role required for first registration
+      // }
+      // const roleId = await this.resolveRoleId(tx, input.role);
+      // if (roleId) await txRbac.assignRole(user.id, roleId);
+
+      return this.completeLogin(tx, newUser, input.device, "GOOGLE", true);
+    });
+  }
   // login
   async loginEmail(input: SignInInput) {
     // Timing-safe: we record the failure regardless of whether the user
@@ -124,23 +190,21 @@ export class AuthService extends LoggedService {
       success: false,
     };
     if (!user) {
-      const login: LoginAttemptInput = {
+      await this.loginHistory.record({
         ...attemptInput,
         failureReason: "INVALID_CREDENTIALS",
-      };
-      if (ipAddress !== undefined) login.ipAddress = ipAddress;
-      await this.loginHistory.record(login);
+        ...(ipAddress !== undefined ? { ipAddress } : {}),
+      });
       throw Errors.auth.invalidCredentials();
     }
 
     // email not verified
     if (!user.emailVerified) {
-      const login: LoginAttemptInput = {
+      await this.loginHistory.record({
         ...attemptInput,
         failureReason: "INVALID_CREDENTIALS",
-      };
-      if (ipAddress !== undefined) login.ipAddress = ipAddress;
-      await this.loginHistory.record(login);
+        ...(ipAddress !== undefined ? { ipAddress } : {}),
+      });
       throw Errors.user.emailNotVerified();
     }
 
@@ -149,19 +213,14 @@ export class AuthService extends LoggedService {
     // Check lockout BEFORE Argon2id — saves expensive compute and avoids
     // timing signals (Technical Design §4.4)
     if (creds.lockedUntil && creds.lockedUntil > new Date()) {
-      const login: LoginAttemptInput = {
+      await this.loginHistory.record({
         userId: user.id,
         loginIdentifier: input.email,
         loginMethod: "PASSWORD",
         success: false,
         failureReason: "ACCOUNT_LOCKED",
-      };
-
-      if (ipAddress !== undefined) {
-        login.ipAddress = ipAddress;
-      }
-
-      await this.loginHistory.record(login);
+        ...(ipAddress !== undefined ? { ipAddress } : {}),
+      });
       throw Errors.auth.invalidCredentials();
     }
 
@@ -179,29 +238,25 @@ export class AuthService extends LoggedService {
         LOCKOUT_MINUTES,
       );
 
-      const loginHistoryInput: LoginAttemptInput = {
+      await this.loginHistory.record({
         userId: user.id,
         loginIdentifier: input.email,
         loginMethod: "PASSWORD",
         success: false,
         failureReason: "INVALID_CREDENTIALS",
-      };
-      if (input.device?.ipAddress !== undefined) {
-        loginHistoryInput.ipAddress = input.device.ipAddress;
-      }
-      await this.loginHistory.record(loginHistoryInput);
+        ...(input.device?.ipAddress !== undefined
+          ? { ipAddress: input.device.ipAddress }
+          : {}),
+      });
 
       if (updated.lockedUntil && updated.lockedUntil > new Date()) {
-        const event: SecurityEventInput = {
+        await this.securityEvents.record({
           userId: user.id,
           eventType: "ACCOUNT_LOCKED",
-        };
-
-        if (input.device?.ipAddress !== undefined) {
-          event.ipAddress = input.device.ipAddress;
-        }
-
-        await this.securityEvents.record(event);
+          ...(input.device?.ipAddress !== undefined
+            ? { ipAddress: input.device.ipAddress }
+            : {}),
+        });
         throw Errors.auth.accountLocked();
       }
 
@@ -216,10 +271,19 @@ export class AuthService extends LoggedService {
       throw Errors.auth.mustResetPassword();
     }
 
+    if (creds.mfaEnabled) {
+      const challengeToken = await this.jwt.signMfaChallengeToken({
+        sub: user.id,
+        deviceFingerprint: input.device?.fingerprint,
+      });
+      return { mfaRequired: true, challengeToken };
+    }
+
     const authUser: DbUser = {
       ...user,
       image: user.image ?? "",
     };
+
     return this.completeLogin(
       this.db,
       authUser,
@@ -242,6 +306,189 @@ export class AuthService extends LoggedService {
 
     await this.userService.verifyEmail(user.id);
     this.logger?.info({ userId: user.id }, "Email verified");
+  }
+
+  async refreshTokens(input: RefreshInput): Promise<RefreshResponse> {
+    const hashBuf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(input.refreshToken),
+    );
+    const tokenHash = Array.from(new Uint8Array(hashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    let device = await this.deviceRepo.findByRefreshTokenHash(tokenHash);
+
+    if (!device) {
+      // Stale token reuse — potential theft (Technical Design §3.4)
+      // Revoke the device by fingerprint if we can find it
+      const fingerDevice = await this.deviceRepo.findByRefreshTokenHash(
+        input.refreshToken,
+      );
+      if (fingerDevice) {
+        await this.deviceRepo.revoke(fingerDevice.id);
+        await this.deviceRepo.bumpTokenVersion(fingerDevice.id);
+        await this.securityEvents.record({
+          userId: fingerDevice.userId,
+          deviceId: fingerDevice.id,
+          eventType: "SUSPICIOUS_LOGIN_BLOCKED",
+        });
+      }
+      throw Errors.auth.tokenInvalid();
+    }
+
+    if (device.status !== "ACTIVE") {
+      throw Errors.device.revoked();
+    }
+
+    const user = await this.userRepo.findById(device.userId);
+    if (!user) throw Errors.auth.tokenInvalid();
+
+    await this.ensureActive(user);
+
+    // Rotate
+    const newRefreshToken = this.generateRefreshToken();
+    const newHashBuf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(newRefreshToken),
+    );
+    const newHash = Array.from(new Uint8Array(newHashBuf))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const expiresAt = new Date(
+      Date.now() + PLATFORM.SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+    );
+    device = await this.deviceRepo.rotateRefreshToken(
+      device.id,
+      newHash,
+      expiresAt,
+    );
+
+    const [_permissions, primaryRole] = await Promise.all([
+      this.rbac.resolvePermissions(user.id),
+      this.rbac.getPrimaryRole(user.id),
+    ]);
+
+    const accessToken = await this.jwt.signAccessToken({
+      sub: user.id,
+      sessionId: device.id,
+      deviceId: device.id,
+      tokenVersion: Math.min(user.tokenVersion, device.tokenVersion),
+      role: primaryRole ?? "student",
+      type: "access",
+    });
+    const accessTokenExpiresAt =
+      Date.now() + PLATFORM.ACCESS_TOKEN_EXPIRY_SECONDS * 1000;
+    return {
+      tokens: {
+        tokenType: "Bearer",
+        expiresIn: PLATFORM.ACCESS_TOKEN_EXPIRY_SECONDS,
+        accessToken,
+        refreshToken: newRefreshToken,
+        expiresAt: accessTokenExpiresAt,
+      },
+      session: {
+        sessionId: device.id,
+        deviceId: device.id,
+        expiresAt: expiresAt.toISOString(),
+      },
+    };
+  }
+
+  // ── Logout ────────────────────────────────────────────────────
+
+  async logout(userId: string, deviceId: string): Promise<void> {
+    await this.deviceService.logout(deviceId);
+    await this.deviceRepo.bumpTokenVersion(deviceId);
+    await this.securityEvents.record({
+      userId,
+      deviceId,
+      eventType: "DEVICE_REVOKED",
+    });
+  }
+
+  async logoutAll(userId: string): Promise<void> {
+    await this.deviceService.logoutAll(userId);
+    await this.userRepo.bumpTokenVersion(userId);
+    await this.securityEvents.record({
+      userId,
+      eventType: "ALL_DEVICES_REVOKED",
+    });
+    await this.securityEvents.record({
+      userId,
+      eventType: "TOKEN_VERSION_BUMPED",
+    });
+  }
+
+  // ── Password management ───────────────────────────────────────
+
+  async changePassword(input: ChangePasswordInput): Promise<void> {
+    const creds = await this.authRepo.findByUserId(input.userId);
+    if (!creds) throw Errors.auth.passwordRequired();
+
+    const valid = await this.passwordService.verify(
+      input.currentPassword,
+      creds.passwordHash,
+    );
+    if (!valid) throw Errors.auth.currentPasswordInvalid();
+
+    assertPasswordStrength(input.newPassword);
+
+    const newHash = await this.passwordService.hash(input.newPassword);
+    await this.authRepo.updatePasswordHash(input.userId, newHash);
+
+    // Bump global tokenVersion — invalidates all OTHER devices immediately
+    // but NOT the current device (so the user isn't logged out of the
+    // session they just used to change their password — API Contract note
+    // on POST /change-password).
+    await this.userRepo.bumpTokenVersion(input.userId);
+
+    await this.securityEvents.record({
+      userId: input.userId,
+      deviceId: input.deviceId,
+      eventType: "PASSWORD_CHANGED",
+    });
+  }
+
+  async setPassword(input: {
+    userId: string;
+    password: string;
+  }): Promise<void> {
+    const user = await this.userRepo.findById(input.userId);
+
+    if (!user) {
+      throw Errors.user.notFound();
+    }
+
+    const existingCreds = await this.authRepo.findByUserId(user.id);
+
+    if (existingCreds) {
+      throw Errors.auth.passwordAlreadySet();
+    }
+
+    assertPasswordStrength(input.password);
+    const hash = await this.passwordService.hash(input.password);
+    await this.authRepo.create({
+      userId: user.id,
+      passwordHash: hash,
+    });
+
+    if (user.email) {
+      await this.db
+        .insert(userAuthProviders)
+        .values({
+          userId: user.id,
+          provider: "EMAIL",
+          providerId: user.email.toLowerCase(),
+        })
+        .onConflictDoNothing();
+    }
+
+    await this.securityEvents.record({
+      userId: user.id,
+      eventType: "PASSWORD_CHANGED",
+    });
   }
 
   // Private

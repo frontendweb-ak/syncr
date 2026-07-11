@@ -17,6 +17,12 @@ export type SignUpInput = {
   password: string;
 };
 
+export interface GoogleAuthInput {
+  idToken: string;
+  role?: string;
+  device: DeviceInput;
+}
+
 export type ForgotPasswordInput = {
   email: string;
 };

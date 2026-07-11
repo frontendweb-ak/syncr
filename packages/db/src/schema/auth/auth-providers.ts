@@ -11,7 +11,6 @@ export const userAuthProviders = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
-
     provider: authProviderEnum("provider").notNull(),
     // Unique identifier returned by the provider
     // Examples:

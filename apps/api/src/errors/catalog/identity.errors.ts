@@ -357,6 +357,11 @@ export const identityErrors = {
         "Onboarding is incomplete",
         ErrorCode.ONBOARDING_INCOMPLETE,
       ),
+    invalidAuthProvider: () =>
+      new BadRequestException(
+        "Invalid authentication provider or provider ID",
+        ErrorCode.AUTH_INVALID_PROVIDER,
+      ),
   },
 
   profile: {

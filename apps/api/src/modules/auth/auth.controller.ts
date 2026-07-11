@@ -46,6 +46,17 @@ export const authController = {
     return ok(c, result);
   },
 
+  async loginGoogle(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    const result = await service.loginWithGoogle({
+      idToken: body.idToken,
+      role: body.role,
+      device: c.get("device"),
+    });
+    return ok(c, result);
+  },
+
   async verifyEmail(c: AppCtx) {
     console.log("C", c.req.query("token"));
     const token = c.req.query("token");

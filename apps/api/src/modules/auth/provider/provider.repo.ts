@@ -1,4 +1,5 @@
-import { userAuthProviders } from "@syncr/db";
+import { userAuthProviders, users } from "@syncr/db";
+import type { AuthProvider } from "@syncr/types";
 import {
   and,
   eq,
@@ -16,8 +17,8 @@ export class AuthProviderRepo extends BaseRepo {
     const rows = await this.db
       .insert(userAuthProviders)
       .values(data)
+      .onConflictDoNothing()
       .returning();
-
     return this.firstOrThrow(rows, Errors.auth.credentialsCreateFailed());
   }
 
@@ -37,14 +38,13 @@ export class AuthProviderRepo extends BaseRepo {
       .from(userAuthProviders)
       .where(eq(userAuthProviders.userId, userId));
   }
-
-  async findByProvider(
-    provider: UserAuthProvider["provider"],
-    providerId: string,
-  ) {
+  async findByProvider(provider: AuthProvider, providerId: string) {
     const rows = await this.db
-      .select()
+      .select({
+        user: users,
+      })
       .from(userAuthProviders)
+      .innerJoin(users, eq(userAuthProviders.userId, users.id))
       .where(
         and(
           eq(userAuthProviders.provider, provider),
@@ -53,7 +53,7 @@ export class AuthProviderRepo extends BaseRepo {
       )
       .limit(1);
 
-    return this.first(rows);
+    return rows[0]?.user ?? null;
   }
 
   async existsProvider(
