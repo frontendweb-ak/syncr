@@ -1,12 +1,13 @@
+// src/modules/api-keys/api-key.repo.ts
+
 import { apiKeys } from "@syncr/db";
 
 import {
   and,
   eq,
+  isNull,
   type InferInsertModel,
   type InferSelectModel,
-  isNull,
-  or,
 } from "drizzle-orm";
 
 import { BaseRepo } from "../../../core/base/base.repo";
@@ -41,6 +42,15 @@ export class ApiKeyRepo extends BaseRepo {
     return apiKey ?? null;
   }
 
+  // Deliberately does NOT filter on expiresAt here. Expiry needs a
+  // distinct error (Errors.apiKey.expired()) from "wrong/unknown key"
+  // (Errors.apiKey.invalid()) — the service checks expiresAt itself
+  // after fetching the row, so it can tell the two apart. If this
+  // query also excluded expired rows, an expired key would come back
+  // as "not found" and the caller could never distinguish it from a
+  // bogus key. (Previous version also had a bug here: it compared
+  // apiKeys.expiresAt to itself — `eq(col, col)` — which is always
+  // true and filtered nothing.)
   async findActiveByPrefix(prefix: string) {
     const [apiKey] = await this.db
       .select()
@@ -50,10 +60,6 @@ export class ApiKeyRepo extends BaseRepo {
           eq(apiKeys.prefix, prefix),
           eq(apiKeys.status, "ACTIVE"),
           isNull(apiKeys.revokedAt),
-          or(
-            isNull(apiKeys.expiresAt),
-            eq(apiKeys.expiresAt, apiKeys.expiresAt),
-          ),
         ),
       )
       .limit(1);
@@ -61,23 +67,42 @@ export class ApiKeyRepo extends BaseRepo {
     return apiKey ?? null;
   }
 
-  async findByUserId(userId: string) {
+  async findByUserId(userId: string, status?: ApiKey["status"]) {
     return this.db
       .select()
       .from(apiKeys)
-      .where(eq(apiKeys.userId, userId))
+      .where(
+        status
+          ? and(eq(apiKeys.userId, userId), eq(apiKeys.status, status))
+          : eq(apiKeys.userId, userId),
+      )
       .orderBy(apiKeys.createdAt);
   }
 
-  async findByOrganizationId(organizationId: string) {
+  async findByOrganizationId(
+    organizationId: string,
+    status?: ApiKey["status"],
+  ) {
     return this.db
       .select()
       .from(apiKeys)
-      .where(eq(apiKeys.organizationId, organizationId))
+      .where(
+        status
+          ? and(
+              eq(apiKeys.organizationId, organizationId),
+              eq(apiKeys.status, status),
+            )
+          : eq(apiKeys.organizationId, organizationId),
+      )
       .orderBy(apiKeys.createdAt);
   }
 
-  async updateUsage(input: Partial<NewApiKey>) {
+  // NOT Partial<NewApiKey> — the previous version typed this as
+  // Partial<NewApiKey> and read `input.ipAddress`, but the column is
+  // `lastUsedIp`. NewApiKey has no `ipAddress` field at all, so that
+  // value was always undefined and every "last used" write silently
+  // cleared lastUsedIp instead of setting it.
+  async updateUsage(input: { id: string; ipAddress?: string }) {
     await this.db
       .update(apiKeys)
       .set({

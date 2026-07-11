@@ -272,6 +272,71 @@ export const identityErrors = {
         "Mfa not enabled",
         ErrorCode.AUTH_MFA_NOT_ENABLED,
       ),
+
+    // Passkeys / WebAuthn
+    passkeyNotFound: () =>
+      new NotFoundException("Passkey", ErrorCode.AUTH_PASSKEY_NOT_FOUND),
+
+    passkeyAlreadyExists: () =>
+      new ConflictException(
+        "This passkey is already registered",
+        ErrorCode.AUTH_PASSKEY_ALREADY_EXISTS,
+      ),
+
+    passkeyInvalid: () =>
+      new UnauthorizedException(
+        "Invalid passkey authentication",
+        ErrorCode.AUTH_PASSKEY_INVALID,
+      ),
+
+    passkeyRegistrationFailed: () =>
+      new HttpException(
+        500,
+        ErrorCode.AUTH_PASSKEY_REGISTRATION_FAILED,
+        "Failed to register passkey",
+      ),
+
+    passkeyVerificationFailed: () =>
+      new UnauthorizedException(
+        "Passkey verification failed",
+        ErrorCode.AUTH_PASSKEY_VERIFICATION_FAILED,
+      ),
+
+    passkeyChallengeExpired: () =>
+      new UnauthorizedException(
+        "Passkey challenge expired",
+        ErrorCode.AUTH_PASSKEY_CHALLENGE_EXPIRED,
+      ),
+
+    passkeyChallengeInvalid: () =>
+      new UnauthorizedException(
+        "Invalid passkey challenge",
+        ErrorCode.AUTH_PASSKEY_CHALLENGE_INVALID,
+      ),
+
+    passkeyCounterMismatch: () =>
+      new UnauthorizedException(
+        "Passkey security counter validation failed",
+        ErrorCode.AUTH_PASSKEY_COUNTER_MISMATCH,
+      ),
+
+    passkeyCloneDetected: () =>
+      new UnauthorizedException(
+        "Potential passkey cloning detected. This credential has been disabled for security reasons.",
+        ErrorCode.AUTH_PASSKEY_CLONE_DETECTED,
+      ),
+
+    passkeyRevoked: () =>
+      new UnauthorizedException(
+        "This passkey has been revoked",
+        ErrorCode.AUTH_PASSKEY_REVOKED,
+      ),
+
+    passkeyLimitReached: () =>
+      new ConflictException(
+        "Maximum number of passkeys reached for this account",
+        ErrorCode.AUTH_PASSKEY_LIMIT_REACHED,
+      ),
   },
 
   apiKey: {

@@ -21,6 +21,7 @@ export const RATE_LIMIT = {
   MFA_ENABLE: { REQUESTS: 10, WINDOW_SECONDS: 300 },
   MFA_ENABLE_CONFIRM: { REQUESTS: 10, WINDOW_SECONDS: 300 },
   MFA_DISABLE: { REQUESTS: 5, WINDOW_SECONDS: 300 },
+  API_KEY_CREATE: { REQUESTS: 5, WINDOW_SECONDS: 300 },
   /* -------------------------------------------------------------------------- */
   /* OAuth / SSO                                                                 */
   /* -------------------------------------------------------------------------- */

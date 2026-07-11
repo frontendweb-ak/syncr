@@ -1,3 +1,5 @@
+// src/modules/api-keys/api-key.service.ts
+
 import crypto from "node:crypto";
 
 import type { Logger } from "pino";
@@ -7,7 +9,15 @@ import type { RepoContext } from "../../../core/base/base.repo";
 import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
 import type { JwtService } from "../../../lib";
-import { ApiKeyRepo, type NewApiKey } from "./api-key.repo";
+import { ApiKeyRepo, type ApiKey, type NewApiKey } from "./api-key.repo";
+
+const KEY_PREFIX = "syncr_live_";
+
+interface GeneratedKey {
+  rawKey: string; // "syncr_live_<8 hex>.<64 hex>" — shown to the user once, never persisted
+  prefix: string; // "syncr_live_<8 hex>" — persisted in the clear, used for lookup
+  secretHash: string;
+}
 
 export class ApiKeyService extends LoggedService {
   private readonly repo: ApiKeyRepo;
@@ -22,8 +32,42 @@ export class ApiKeyService extends LoggedService {
     this.repo = new ApiKeyRepo(db);
   }
 
-  async create(input: NewApiKey) {
-    return this.repo.create(input);
+  private generateKey(): GeneratedKey {
+    const prefix = `${KEY_PREFIX}${crypto.randomBytes(4).toString("hex")}`;
+    const secret = crypto.randomBytes(32).toString("hex");
+    const rawKey = `${prefix}.${secret}`;
+    const secretHash = crypto.createHash("sha256").update(secret).digest("hex");
+
+    return { rawKey, prefix, secretHash };
+  }
+
+  // The only place a PAT is minted. Controller calls this and this
+  // alone — it must never build prefix/secret/hash itself.
+  async create(input: {
+    userId: string;
+    name: string;
+    description?: string;
+    expiresInDays?: number;
+  }): Promise<{ key: ApiKey; rawKey: string }> {
+    const { rawKey, prefix, secretHash } = this.generateKey();
+
+    const expiresAt = input.expiresInDays
+      ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
+      : null;
+
+    const key = await this.repo.create({
+      userId: input.userId,
+      name: input.name,
+      description: input.description,
+      prefix,
+      secretHash,
+      expiresAt,
+      type: "PERSONAL",
+      status: "ACTIVE",
+      createdBy: input.userId,
+    } satisfies NewApiKey);
+
+    return { key, rawKey };
   }
 
   async getById(id: string) {
@@ -40,22 +84,37 @@ export class ApiKeyService extends LoggedService {
     return this.repo.findByPrefix(prefix);
   }
 
-  async listUserKeys(userId: string) {
-    return this.repo.findByUserId(userId);
+  async listUserKeys(userId: string, status?: ApiKey["status"]) {
+    return this.repo.findByUserId(userId, status);
   }
 
-  async listOrganizationKeys(organizationId: string) {
-    return this.repo.findByOrganizationId(organizationId);
+  async listOrganizationKeys(
+    organizationId: string,
+    status?: ApiKey["status"],
+  ) {
+    return this.repo.findByOrganizationId(organizationId, status);
   }
 
-  async revoke(apiKeyId: string, revokedBy: string, reason?: string) {
+  // Ownership check lives here, not in the controller — this is
+  // business logic ("who is allowed to revoke this key"), and the
+  // service layer is where that belongs. MVP rule: a user can only
+  // revoke their own PERSONAL key. There's no "revoke others' keys"
+  // permission yet, so this doesn't go through the RBAC permission
+  // check — it's a flat ownership comparison.
+  async revoke(apiKeyId: string, requestingUserId: string, reason?: string) {
     const apiKey = await this.getById(apiKeyId);
 
-    if (apiKey.status === "REVOKED") {
-      return;
+    if (apiKey.userId !== requestingUserId) {
+      throw Errors.auth.permissionDenied("api_keys:revoke");
     }
 
-    await this.repo.revoke(apiKeyId, revokedBy, reason);
+    if (apiKey.status === "REVOKED") {
+      return apiKey; // idempotent — revoking twice is not an error
+    }
+
+    await this.repo.revoke(apiKeyId, requestingUserId, reason);
+
+    return this.getById(apiKeyId);
   }
 
   async activate(apiKeyId: string) {
@@ -76,13 +135,16 @@ export class ApiKeyService extends LoggedService {
     await this.repo.delete(apiKeyId);
   }
 
+  // ipAddress is passed straight through to repo.updateUsage, which
+  // maps it onto the lastUsedIp column (see the repo fix above).
   async touch(apiKeyId: string, ipAddress?: string) {
     await this.repo.updateUsage({
       id: apiKeyId,
-      ipAddress,
+      ...(ipAddress ? { ipAddress } : {}),
     });
   }
 
+  // Called by the CLI bearer-token middleware on every request.
   async validate(rawKey: string) {
     const [prefix, secret] = rawKey.split(".");
 
