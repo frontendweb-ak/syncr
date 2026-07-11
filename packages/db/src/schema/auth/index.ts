@@ -12,3 +12,5 @@ export * from "./security-events";
 export * from "./user-impersonations";
 export * from "./users";
 
+export * from "./api-keys";
+export * from "./passkeys";

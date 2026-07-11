@@ -54,5 +54,4 @@ export const passwordResetTokenStatusEnum = pgEnum(
 );
 
 export const apiKeyTypeEnum = pgEnum("api_key_type", API_KEY_TYPE);
-
 export const apiKeyStatusEnum = pgEnum("api_key_status", API_KEY_STATUS);

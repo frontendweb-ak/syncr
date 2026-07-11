@@ -198,3 +198,33 @@ export const SetPasswordSchema = z
   });
 
 export type SetPasswordInput = z.infer<typeof SetPasswordSchema>;
+
+
+
+// packages/validator/src/api-key.schema.ts
+
+
+export const CreateApiKeySchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(500).optional(),
+  // Optional expiry in days from creation. Omit = never expires.
+  // Capped at 365 — anything longer, make a new key instead of trusting
+  // a two-year-old secret.
+  expiresInDays: z.number().int().min(1).max(365).optional(),
+});
+export type CreateApiKeyInput = z.infer<typeof CreateApiKeySchema>;
+
+export const ListApiKeysQuerySchema = z.object({
+  status: z.enum(["ACTIVE", "REVOKED", "EXPIRED"]).optional(),
+});
+export type ListApiKeysQuery = z.infer<typeof ListApiKeysQuerySchema>;
+
+export const RevokeApiKeyParamsSchema = z.object({
+  apiKeyId: z.string().uuid(),
+});
+export type RevokeApiKeyParams = z.infer<typeof RevokeApiKeyParamsSchema>;
+
+export const RevokeApiKeyBodySchema = z.object({
+  reason: z.string().trim().max(300).optional(),
+});
+export type RevokeApiKeyBody = z.infer<typeof RevokeApiKeyBodySchema>;

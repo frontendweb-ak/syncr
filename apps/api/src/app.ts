@@ -9,8 +9,7 @@ import { timing } from "hono/timing";
 import type { AppConfig } from "./config";
 import { errorHandler, notFoundHandler } from "./errors";
 import { createLogger, JwtService } from "./lib";
-import { createAuth } from "./lib/auth/better-auth";
-import { betterAuthMiddleware } from "./middleware/better-auth";
+// import { createAuth } from "./lib/auth/better-auth";
 import { createConfigMiddleware } from "./middleware/config";
 import { dbMiddleware } from "./middleware/db";
 import { deviceMiddleware } from "./middleware/device";
@@ -165,8 +164,8 @@ export function createApp(config: AppConfig) {
   app.use("*", dbMiddleware(db));
 
   // Better Auth middleware
-  const auth = createAuth(db, config);
-  app.use("*", betterAuthMiddleware(auth));
+  // const auth = createAuth(db, config);
+  // app.use("*", betterAuthMiddleware(auth));
 
   //   JWT
   const jwt = new JwtService(config);
