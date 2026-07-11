@@ -9,7 +9,7 @@ export interface RateLimitRule {
 }
 
 /**
- * All rate limit tiers from PLATFORM.RATE_LIMITS, pre-parsed into seconds.
+ * All rate limit tiers from APP.RATE_LIMITS, pre-parsed into seconds.
  * Built once at module load — this object is pure config, has no
  * dependency on request-scoped state, and is safe to share across every
  * request/isolate.

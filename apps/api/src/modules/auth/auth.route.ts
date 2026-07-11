@@ -13,6 +13,7 @@ import {
   RefreshTokenSchema,
   RegisterSchema,
   ResetPasswordSchema,
+  SetPasswordSchema,
   VerifyEmailQuerySchema,
 } from "@syncr/validator";
 import { Hono } from "hono";
@@ -65,6 +66,21 @@ auth.post(
   validate(ResetPasswordSchema),
   authController.resetPassword,
 );
+
+auth.post(
+  "/change-password",
+  authMiddleware,
+  validate(ChangePasswordSchema),
+  authController.changePassword,
+);
+
+auth.post(
+  "/set-password",
+  validate(SetPasswordSchema),
+  authMiddleware,
+  authController.setPassword,
+);
+
 // Second step of login when the account has MFA enabled — loginEmail
 // returns a short-lived challengeToken instead of tokens in that case.
 auth.post("/mfa/verify", validate(MfaVerifySchema), authController.verifyMfa);
@@ -77,6 +93,7 @@ auth.post(
 // ── Authenticated ───────────────────────────────────────────────────
 auth.post("/logout", authMiddleware, authController.logout);
 auth.post("/logout-all", authMiddleware, authController.logoutAll);
+
 auth.get("/devices", authMiddleware, authController.getDevices);
 auth.delete("/devices/:deviceId", authMiddleware, authController.revokeDevice);
 
@@ -90,13 +107,6 @@ auth.post(
 );
 
 auth.post("/mfa/disable", authMiddleware, authController.disableMfa);
-
-auth.post(
-  "/change-password",
-  authMiddleware,
-  validate(ChangePasswordSchema),
-  authController.changePassword,
-);
 
 export { auth as authRoutes };
 

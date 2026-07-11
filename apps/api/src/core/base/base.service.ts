@@ -4,7 +4,7 @@
 // follows the same shape by hand: take a RepoContext in the constructor,
 // construct one or more Repos from it. This formalizes that pattern and
 // adds the one thing none of them have yet: a withTransaction() helper
-// so multi-repo operations (e.g. "create mentorship + decrement mentor
+
 // capacity + write an audit log row") can run atomically.
 //
 // Services are constructed per-request from a controller, using the
@@ -30,14 +30,6 @@ export abstract class BaseService {
    * than failing confusingly inside the driver.
    *
    * @example
-   *   async createMentorship(input: CreateMentorshipInput) {
-   *     return this.withTransaction(async (tx) => {
-   *       const mentorship = await new MentorshipRepo(tx).create(input);
-   *       await new MentorRepo(tx).decrementCapacity(input.mentorId);
-   *       await new AuditLogRepo(tx).record({ ... });
-   *       return mentorship;
-   *     });
-   *   }
    */
   protected async withTransaction<T>(
     fn: (tx: Transaction) => Promise<T>,

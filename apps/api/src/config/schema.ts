@@ -66,7 +66,6 @@ export const envSchema = z.object({
 
   // ── Field-level encryption (Technical Design §10, future MFA secrets;
   // also used for any other field requiring application-layer encryption
-  // at rest, e.g. mentor_payout_accounts) ─────────────────────────
   FIELD_ENCRYPTION_KEY: z.string().min(32).optional(),
   // ── Monitoring (Sentry) ──────────────────────────────────────
   SENTRY_DSN: z.url().optional(),
@@ -75,7 +74,7 @@ export const envSchema = z.object({
   AWS_REGION: z.string().default("ap-south-1"),
   AWS_ACCESS_KEY_ID: z.string().optional(),
   AWS_SECRET_ACCESS_KEY: z.string().optional(),
-  SES_FROM_EMAIL: z.email().default("noreply@allindiamentors.com"),
+  SES_FROM_EMAIL: z.email().default("noreply@syncr.dev"),
   SES_CONFIGURATION_SET: z.string().optional(),
   SES_REPLY_TO: z.string().optional(),
 

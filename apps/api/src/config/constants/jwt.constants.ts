@@ -49,7 +49,14 @@ export const JWT = {
   /* -------------------------------------------------------------------------- */
   /* Expiration                                                                  */
   /* -------------------------------------------------------------------------- */
-
+  EXPIRY_SECONDS: {
+    ACCESS: 15 * 60,
+    REFRESH: 30 * 24 * 60 * 60,
+    EMAIL_VERIFICATION: 24 * 60 * 60,
+    PASSWORD_RESET: 30 * 60,
+    MAGIC_LINK: 15 * 60,
+    MFA_CHALLENGE: 5 * 60,
+  },
   EXPIRY: {
     ACCESS: "15m",
     REFRESH: "30d",

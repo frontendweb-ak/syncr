@@ -63,9 +63,7 @@ export class CredentialService extends LoggedService {
    */
   async updatePassword(userId: string, passwordHash: string): Promise<void> {
     await this.getCredential(userId);
-
     await this.repo.updatePasswordHash(userId, passwordHash);
-
     this.logger?.info({ userId }, "Password updated");
   }
 
@@ -74,7 +72,6 @@ export class CredentialService extends LoggedService {
    */
   async requirePasswordReset(userId: string): Promise<void> {
     await this.getCredential(userId);
-
     await this.repo.setMustResetPassword(userId, true);
   }
 
@@ -162,4 +159,66 @@ export class CredentialService extends LoggedService {
     await this.repo.delete(userId);
     this.logger?.warn({ userId }, "Authentication credentials deleted");
   }
+
+
+
+  /**
+ * Saves a pending MFA enrollment secret.
+ */
+async savePendingMfaSecret(input: {
+  userId: string;
+  secret: string;
+  expiresAt: Date;
+}): Promise<void> {
+  await this.getCredential(input.userId);
+
+  await this.repo.savePendingMfaSecret(
+    input.userId,
+    input.secret,
+    input.expiresAt,
+  );
+
+  this.logger?.info(
+    { userId: input.userId },
+    "Pending MFA secret saved",
+  );
+}
+
+/**
+ * Returns the pending MFA enrollment secret.
+ */
+async getPendingMfaSecret(
+  userId: string,
+): Promise<{
+  secret: string;
+  expiresAt: Date;
+} | null> {
+  const credential = await this.getCredential(userId);
+
+  if (
+    !credential.mfaPendingSecretEncrypted ||
+    !credential.mfaPendingExpiresAt
+  ) {
+    return null;
+  }
+
+  return {
+    secret: credential.mfaPendingSecretEncrypted,
+    expiresAt: credential.mfaPendingExpiresAt,
+  };
+}
+
+/**
+ * Clears any pending MFA enrollment.
+ */
+async clearPendingMfaSecret(userId: string): Promise<void> {
+  await this.getCredential(userId);
+
+  await this.repo.clearPendingMfaSecret(userId);
+
+  this.logger?.info(
+    { userId },
+    "Pending MFA enrollment cleared",
+  );
+}
 }

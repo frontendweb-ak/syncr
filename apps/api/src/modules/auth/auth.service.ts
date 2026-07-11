@@ -18,6 +18,7 @@ import type {
   UserStatus,
 } from "@syncr/types";
 import type { Logger } from "pino";
+import QRCode from "qrcode";
 import { type AppConfig, AUTH, JWT } from "../../config";
 import type { RepoContext } from "../../core/base/base.repo";
 import { LoggedService } from "../../core/base/logger.service";
@@ -439,8 +440,8 @@ export class AuthService extends LoggedService {
   }
 
   async logoutAll(userId: string): Promise<void> {
+    await this.userService.bumpTokenVersion(userId);
     await this.deviceService.logoutAll(userId);
-    await this.deviceService.bumpTokenVersion(userId);
     await this.securityEvents.record({
       userId,
       eventType: "ALL_DEVICES_REVOKED",
@@ -702,18 +703,46 @@ export class AuthService extends LoggedService {
   async startMfaEnrollment(userId: string) {
     const user = await this.userService.getById(userId);
     if (!user) throw Errors.user.notFound();
-    return this.mfaService.beginEnrollment(userId, user.email); // generates + stores unconfirmed secret, returns QR data
+    const enrollment = this.mfaService.beginEnrollment(user.email); // generates + stores unconfirmed secret, returns QR data
+
+    await this.credentialService.savePendingMfaSecret({
+      userId,
+      secret: enrollment.secret, // encrypt before storing
+      expiresAt: enrollment.expiresAt,
+    });
+
+    return {
+      secret: enrollment.secret,
+      otpauthUrl: enrollment.otpauthUrl,
+      qrCodeDataUrl: await QRCode.toDataURL(enrollment.otpauthUrl),
+    };
   }
 
   async confirmMfaEnrollment(userId: string, code: string) {
-    const secret = await this.mfaService.getPendingSecret(userId);
-    if (!secret) throw Errors.auth.mfaEnrollmentNotStarted();
+    const pending = await this.credentialService.getPendingMfaSecret(userId);
 
-    const valid = await this.mfaService.verifyCode(secret, code);
-    if (!valid) throw Errors.auth.mfaChallengeInvalid();
+    if (!pending) {
+      throw Errors.auth.mfaEnrollmentNotStarted();
+    }
 
-    await this.credentialService.enableMfa(userId, "TOTP", secret);
-    await this.securityEvents.record({ userId, eventType: "PASSWORD_CHANGED" }); // reuse or add an MFA_ENABLED event type
+    if (pending.expiresAt < new Date()) {
+      throw Errors.auth.mfaEnrollmentExpired();
+    }
+
+    const valid = this.mfaService.verifyCode(pending.secret, code);
+
+    if (!valid) {
+      throw Errors.auth.mfaChallengeInvalid();
+    }
+
+    await this.credentialService.enableMfa(userId, "TOTP", pending.secret);
+
+    await this.credentialService.clearPendingMfaSecret(userId);
+
+    await this.securityEvents.record({
+      userId,
+      eventType: "MFA_ENABLED",
+    });
   }
 
   async disableMfa(userId: string) {

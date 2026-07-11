@@ -173,27 +173,28 @@ export type MfaEnableConfirmInput = z.infer<
 export const ChangePasswordSchema = z
   .object({
     currentPassword: Password,
-
     newPassword: Password,
-
     confirmPassword: Password,
   })
-  .refine(
-    (data) => data.newPassword === data.confirmPassword,
-    {
-      path: ["confirmPassword"],
-      message: "Passwords do not match",
-    },
-  )
-  .refine(
-    (data) => data.currentPassword !== data.newPassword,
-    {
-      path: ["newPassword"],
-      message:
-        "New password must be different from current password",
-    },
-  );
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    path: ["newPassword"],
+    message: "New password must be different from current password",
+  });
 
-export type ChangePasswordInput = z.infer<
-  typeof ChangePasswordSchema
->;
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
+
+export const SetPasswordSchema = z
+  .object({
+    password: Password,
+    confirmPassword: Password,
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  });
+
+export type SetPasswordInput = z.infer<typeof SetPasswordSchema>;

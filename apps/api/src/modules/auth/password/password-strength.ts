@@ -4,7 +4,7 @@
 // Client-side strength meters are UX only — this is the source of truth
 // and is never skipped, regardless of what the client already validated.
 
-import { Errors } from '../../../errors'
+import { Errors } from "../../../errors";
 
 const MIN_LENGTH = 8
 const MAX_LENGTH = 256
@@ -18,25 +18,23 @@ const MAX_LENGTH = 256
 // most trivially guessable passwords, not to replace Argon2id as the real
 // defense.
 const COMMON_PASSWORDS = new Set([
-  'password',
-  'password1',
-  'password123',
-  '12345678',
-  '123456789',
-  '1234567890',
-  'qwertyuiop',
-  'qwerty123',
-  'letmein123',
-  'welcome123',
-  'admin1234',
-  'iloveyou1',
-  'abc123456',
-  'india1234',
-  'mentor123',
-  'student123',
-  'changeme1',
-  'password!',
-])
+  "password",
+  "password1",
+  "password123",
+  "12345678",
+  "123456789",
+  "1234567890",
+  "qwertyuiop",
+  "qwerty123",
+  "letmein123",
+  "welcome123",
+  "admin1234",
+  "iloveyou1",
+  "abc123456",
+  "india1234",
+  "changeme1",
+  "password!",
+]);
 
 export interface PasswordStrengthResult {
   valid: boolean

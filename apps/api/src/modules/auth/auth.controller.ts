@@ -114,6 +114,19 @@ export const authController = {
     });
   },
 
+  async setPassword(c: AppCtx) {
+    const auth = c.get("auth");
+    const body = await c.req.json();
+
+    const service = makeAuthService(c);
+
+    await service.setPassword({
+      userId: auth.sub,
+      password: body.password,
+    });
+
+    return ok(c, { success: true });
+  },
   // logout
 
   async logout(c: AppCtx) {
@@ -124,7 +137,10 @@ export const authController = {
       "Set-Cookie",
       "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/refresh; Max-Age=0",
     );
-    return ok(c, { success: true,messsage:"You have successfully logged out" });
+    return ok(c, {
+      success: true,
+      messsage: "You have successfully logged out",
+    });
   },
 
   async logoutAll(c: AppCtx) {

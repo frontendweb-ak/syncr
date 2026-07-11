@@ -28,7 +28,5 @@ export const Errors = {
   ...identityErrors, // auth, apiKey, device, user, profile
   ...workspaceErrors, // organization, project, provider, workspace
   ...platformErrors, // sync, appInit, validation, upload, database
-  // student, mentorship, milestone, submission,
-  // mentorSession, review, dispute
   ...commerceErrors, // checkout, payment
 } as const;

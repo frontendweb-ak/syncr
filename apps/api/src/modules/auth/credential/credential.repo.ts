@@ -174,4 +174,30 @@ export class CredentialRepo extends BaseRepo {
       .delete(authCredentials)
       .where(eq(authCredentials.userId, userId));
   }
+
+  async savePendingMfaSecret(
+    userId: string,
+    secret: string,
+    expiresAt: Date,
+  ): Promise<void> {
+    await this.db
+      .update(authCredentials)
+      .set({
+        mfaPendingSecretEncrypted: secret,
+        mfaPendingExpiresAt: expiresAt,
+        updatedAt: new Date(),
+      })
+      .where(eq(authCredentials.userId, userId));
+  }
+
+  async clearPendingMfaSecret(userId: string): Promise<void> {
+    await this.db
+      .update(authCredentials)
+      .set({
+        mfaPendingSecretEncrypted: null,
+        mfaPendingExpiresAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(authCredentials.userId, userId));
+  }
 }

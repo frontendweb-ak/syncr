@@ -50,6 +50,8 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   AUTH_SESSION_REVOKED: "Session has been revoked.",
 
   // Auth: OTP
+  AUTH_MFA_ENROLLMENT_EXPIRED: "Auth mfa enrollment expired",
+  AUTH_MFA_INVALID: "Auth mfa invalid",
   AUTH_OTP_INVALID: "OTP is invalid.",
   AUTH_OTP_EXPIRED: "OTP has expired.",
   AUTH_OTP_RATE_LIMIT:
@@ -189,60 +191,6 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   APP_VERSION_UNSUPPORTED:
     "This app version is no longer supported. Please update.",
 
-  // Mentor
-  MENTOR_NOT_FOUND: "Mentor not found.",
-  MENTOR_NOT_VERIFIED: "Mentor is not yet verified.",
-  MENTOR_NOT_ACTIVE: "Mentor is not accepting students.",
-  MENTOR_CAPACITY_FULL: "Mentor has no available slots.",
-  MENTOR_ALREADY_APPROVED: "Mentor is already approved.",
-
-  // Programme
-  PROGRAMME_NOT_FOUND: "Programme not found.",
-  PROGRAMME_NOT_PUBLISHED: "Programme is not published.",
-  PROGRAMME_TIER_EXISTS: "A programme for this tier already exists.",
-
-  // Requirement
-  REQUIREMENT_NOT_FOUND: "Requirement not found.",
-  REQUIREMENT_CLOSED: "Requirement is no longer open.",
-  REQUIREMENT_EXPIRED: "Requirement has expired.",
-
-  // Application
-  APPLICATION_NOT_FOUND: "Application not found.",
-  APPLICATION_DUPLICATE: "You have already applied to this requirement.",
-  APPLICATION_CLOSED: "Applications are closed for this requirement.",
-
-  // Student
-  STUDENT_NOT_FOUND: "Student profile not found.",
-  STUDENT_PROFILE_EXISTS: "Student profile already exists.",
-  STUDENT_CREATE_FAILED: "Failed to create student profile.",
-  STUDENT_REQUIREMENT_NOT_FOUND: "Requirement not found.",
-  STUDENT_REQUIREMENT_CLOSED: "This requirement is already closed.",
-
-  // Mentorship
-  MENTORSHIP_NOT_FOUND: "Mentorship not found.",
-  MENTORSHIP_NOT_ACTIVE: "Mentorship is not active.",
-  MENTORSHIP_DUPLICATE:
-    "You already have an active mentorship with this mentor.",
-  MENTORSHIP_ACCESS_DENIED: "You are not a party to this mentorship.",
-
-  // Milestone
-  MILESTONE_NOT_FOUND: "Milestone not found.",
-  MILESTONE_LOCKED: "Milestone is locked.",
-  MILESTONE_ALREADY_DONE: "Milestone already completed.",
-
-  // Submission / evaluation
-  SUBMISSION_NOT_FOUND: "Submission not found.",
-  SUBMISSION_ALREADY_EVALUATED: "This submission has already been evaluated.",
-  EVALUATION_NOT_FOUND: "Evaluation not found.",
-
-  // Checkout
-  CHECKOUT_NOT_FOUND: "Checkout not found.",
-  CHECKOUT_ALREADY_COMPLETED: "This checkout has already been completed.",
-  CHECKOUT_EXPIRED: "This checkout session has expired.",
-  CHECKOUT_ACCESS_DENIED: "You do not have access to this checkout.",
-  CHECKOUT_PROGRAMME_NOT_PUBLISHED: "Programme is not available for purchase.",
-  CHECKOUT_DUPLICATE: "An active checkout already exists for this programme.",
-
   // Payment
   PAYMENT_NOT_FOUND: "Payment not found.",
   PAYMENT_AMOUNT_MISMATCH: "Payment amount does not match the expected amount.",
@@ -252,18 +200,6 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   ESCROW_NOT_HELD: "Funds are not currently held in escrow.",
   REFUND_FAILED: "Refund failed.",
   PAYOUT_FAILED: "Payout failed.",
-
-  // Mentor session
-  MENTOR_SESSION_NOT_FOUND: "Session not found.",
-  MENTOR_SESSION_NOT_SCHEDULED: "Session is not in a scheduled state.",
-  MENTOR_SESSION_ALREADY_COMPLETED: "Session has already been completed.",
-  MENTOR_SESSION_ACCESS_DENIED: "You do not have access to this session.",
-
-  // Review
-  REVIEW_NOT_FOUND: "Review not found.",
-  REVIEW_ALREADY_EXISTS: "You have already reviewed this mentorship.",
-  REVIEW_ACCESS_DENIED: "You do not have access to this review.",
-  REVIEW_MENTORSHIP_NOT_COMPLETE: "You can only review a completed mentorship.",
 
   // Dispute
   DISPUTE_NOT_FOUND: "Dispute not found.",

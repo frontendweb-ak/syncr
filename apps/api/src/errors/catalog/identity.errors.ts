@@ -195,7 +195,12 @@ export const identityErrors = {
         "Multi-factor authentication is not enabled",
         ErrorCode.AUTH_MFA_NOT_ENABLED,
       ),
-
+    mfaEnrollmentExpired() {
+      return new UnauthorizedException(
+        "MFA enrollment has expired. Please start enrollment again.",
+        ErrorCode.AUTH_MFA_ENROLLMENT_EXPIRED,
+      );
+    },
     // RBAC
     roleForbidden: (role: string) =>
       new ForbiddenException(
