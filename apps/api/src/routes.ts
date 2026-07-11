@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { apiKeyRoutes } from "./modules/auth/api-key/api-key.route";
 import { authRoutes } from "./modules/auth/auth.route";
 import { healthRoutes } from "./modules/health/health.route";
 import type { AppContext } from "./types/env";
@@ -8,3 +9,4 @@ export const routes = new Hono<AppContext>();
 routes.route("/health", healthRoutes);
 
 routes.route("/auth", authRoutes);
+routes.route("/api/v1/api-keys", apiKeyRoutes);

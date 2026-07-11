@@ -5,17 +5,14 @@
 
 import {
   ChangePasswordSchema,
-  CreateApiKeySchema,
   ForgotPasswordSchema,
   GoogleLoginSchema,
-  ListApiKeysQuerySchema,
   LoginSchema,
   MfaEnableConfirmSchema,
   MfaVerifySchema,
   RefreshTokenSchema,
   RegisterSchema,
   ResetPasswordSchema,
-  RevokeApiKeyBodySchema,
   SetPasswordSchema,
   VerifyEmailQuerySchema,
 } from "@syncr/validator";
@@ -25,7 +22,6 @@ import { rateLimitMiddleware } from "../../middleware/rate-limit";
 import { validate, validateQuery } from "../../middleware/validate";
 import type { AppContext } from "../../types/env";
 import { getClientIp } from "../../utils/network";
-import { apiKeyController } from "./api-key/api-key.controller";
 import { authController } from "./auth.controller";
 
 const auth = new Hono<AppContext>();
@@ -132,19 +128,5 @@ auth.post(
   authController.disableMfa,
 );
 
-auth.post(
-  "/",
-  rateLimitMiddleware("API_KEY_CREATE"),
-  validate(CreateApiKeySchema),
-  apiKeyController.create,
-);
-
-auth.get("/", validateQuery(ListApiKeysQuerySchema), apiKeyController.list);
-
-auth.delete(
-  "/:apiKeyId",
-  validate(RevokeApiKeyBodySchema),
-  apiKeyController.revoke,
-);
 export { auth as authRoutes };
 
