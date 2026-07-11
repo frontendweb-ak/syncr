@@ -87,6 +87,7 @@ export const SECURITY_EVENT_TYPE = [
   "TOKEN_VERSION_BUMPED",
   "SUSPICIOUS_LOGIN_BLOCKED",
   "MFA_ENABLED",
+  "MFA_DISABLED",
 ] as const;
 
 export type SecurityEventType = (typeof SECURITY_EVENT_TYPE)[number];

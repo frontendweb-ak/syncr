@@ -4,6 +4,7 @@ import type { RepoContext } from "../../../core/base/base.repo";
 import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
 import type { JwtService } from "../../../lib";
+import { SecurityEventRepo } from "../security";
 import {
   type AuthCredential,
   CredentialRepo,
@@ -12,6 +13,7 @@ import {
 
 export class CredentialService extends LoggedService {
   private readonly repo: CredentialRepo;
+  private readonly securityEventRepo: SecurityEventRepo;
 
   constructor(
     db: RepoContext,
@@ -21,6 +23,7 @@ export class CredentialService extends LoggedService {
   ) {
     super(db, jwt, config, logger);
     this.repo = new CredentialRepo(db);
+    this.securityEventRepo = new SecurityEventRepo(db);
   }
 
   /**
@@ -149,6 +152,10 @@ export class CredentialService extends LoggedService {
     const credential = await this.getCredential(userId);
     if (!credential.mfaEnabled) throw Errors.auth.mfaNotEnabled();
     await this.repo.disableMfa(userId);
+    await this.securityEventRepo.create({
+      userId,
+      eventType: "MFA_DISABLED",
+    });
     this.logger?.info({ userId }, "MFA disabled");
   }
 
@@ -160,65 +167,55 @@ export class CredentialService extends LoggedService {
     this.logger?.warn({ userId }, "Authentication credentials deleted");
   }
 
-
-
   /**
- * Saves a pending MFA enrollment secret.
- */
-async savePendingMfaSecret(input: {
-  userId: string;
-  secret: string;
-  expiresAt: Date;
-}): Promise<void> {
-  await this.getCredential(input.userId);
+   * Saves a pending MFA enrollment secret.
+   */
+  async savePendingMfaSecret(input: {
+    userId: string;
+    secret: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    await this.getCredential(input.userId);
 
-  await this.repo.savePendingMfaSecret(
-    input.userId,
-    input.secret,
-    input.expiresAt,
-  );
+    await this.repo.savePendingMfaSecret(
+      input.userId,
+      input.secret,
+      input.expiresAt,
+    );
 
-  this.logger?.info(
-    { userId: input.userId },
-    "Pending MFA secret saved",
-  );
-}
-
-/**
- * Returns the pending MFA enrollment secret.
- */
-async getPendingMfaSecret(
-  userId: string,
-): Promise<{
-  secret: string;
-  expiresAt: Date;
-} | null> {
-  const credential = await this.getCredential(userId);
-
-  if (
-    !credential.mfaPendingSecretEncrypted ||
-    !credential.mfaPendingExpiresAt
-  ) {
-    return null;
+    this.logger?.info({ userId: input.userId }, "Pending MFA secret saved");
   }
 
-  return {
-    secret: credential.mfaPendingSecretEncrypted,
-    expiresAt: credential.mfaPendingExpiresAt,
-  };
-}
+  /**
+   * Returns the pending MFA enrollment secret.
+   */
+  async getPendingMfaSecret(userId: string): Promise<{
+    secret: string;
+    expiresAt: Date;
+  } | null> {
+    const credential = await this.getCredential(userId);
 
-/**
- * Clears any pending MFA enrollment.
- */
-async clearPendingMfaSecret(userId: string): Promise<void> {
-  await this.getCredential(userId);
+    if (
+      !credential.mfaPendingSecretEncrypted ||
+      !credential.mfaPendingExpiresAt
+    ) {
+      return null;
+    }
 
-  await this.repo.clearPendingMfaSecret(userId);
+    return {
+      secret: credential.mfaPendingSecretEncrypted,
+      expiresAt: credential.mfaPendingExpiresAt,
+    };
+  }
 
-  this.logger?.info(
-    { userId },
-    "Pending MFA enrollment cleared",
-  );
-}
+  /**
+   * Clears any pending MFA enrollment.
+   */
+  async clearPendingMfaSecret(userId: string): Promise<void> {
+    await this.getCredential(userId);
+
+    await this.repo.clearPendingMfaSecret(userId);
+
+    this.logger?.info({ userId }, "Pending MFA enrollment cleared");
+  }
 }
