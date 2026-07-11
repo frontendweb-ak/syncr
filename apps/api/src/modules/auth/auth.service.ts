@@ -1,9 +1,16 @@
-import { type EmailService, verifyEmailTemplate } from "@syncr/notifications";
+import {
+  type EmailService,
+  forgotPasswordTemplate,
+  resetPasswordConfirmedTemplate,
+  verifyEmailTemplate,
+} from "@syncr/notifications";
 import type {
+  ChangePasswordInput,
   DeviceInput,
   GoogleAuthInput,
   LoginAttemptInput,
   LoginMethod,
+  RefreshInput,
   SecurityEventInput,
   SignInInput,
   SignUpInput,
@@ -20,7 +27,9 @@ import { UserService } from "../user";
 import type { User as DbUser } from "../user/user.repo";
 import { CredentialService } from "./credential/credential.service";
 import { type Device, DeviceService } from "./device";
+import { MfaService } from "./mfa/mfa.service";
 import { GoogleOAuthService } from "./oauth/google.service";
+import { PasswordResetService } from "./password/password-reset.service";
 import { assertPasswordStrength } from "./password/password-strength";
 import { PasswordService } from "./password/password.service";
 import { AuthProviderService } from "./provider";
@@ -42,6 +51,8 @@ export class AuthService extends LoggedService {
   private readonly email: EmailService;
 
   private readonly googleService: GoogleOAuthService;
+  private readonly mfaService: MfaService;
+  private readonly passwordReset: PasswordResetService;
   constructor(
     db: RepoContext,
     jwt: JwtService,
@@ -61,7 +72,10 @@ export class AuthService extends LoggedService {
     this.passwordService = new PasswordService();
     this.providerService = new AuthProviderService(db, jwt, config, logger);
     // google
+
     this.googleService = new GoogleOAuthService(config);
+    this.mfaService = new MfaService(db, jwt, config, logger);
+    this.passwordReset = new PasswordResetService(db, jwt, config, logger);
   }
 
   // register
@@ -136,19 +150,13 @@ export class AuthService extends LoggedService {
           providerId: identity.subject,
         });
       }
-      return this.completeLogin(
-        this.db,
-        existingUser,
-        input.device,
-        "GOOGLE",
-        false,
-      );
+      return this.completeLogin(existingUser, input.device, "GOOGLE", false);
     }
 
     // New user
     if (!input.role) throw Errors.auth.tokenInvalid(); // role required for first registration
 
-    return this.withTransaction(async (tx) => {
+    return this.withTransaction(async () => {
       const newUser = await this.userService.createUser({
         name: identity.name ?? "AIM User",
         email: identity.email?.toLowerCase(),
@@ -169,7 +177,7 @@ export class AuthService extends LoggedService {
       // const roleId = await this.resolveRoleId(tx, input.role);
       // if (roleId) await txRbac.assignRole(user.id, roleId);
 
-      return this.completeLogin(tx, newUser, input.device, "GOOGLE", true);
+      return this.completeLogin(newUser, input.device, "GOOGLE", true);
     });
   }
   // login
@@ -189,6 +197,7 @@ export class AuthService extends LoggedService {
       loginMethod: "PASSWORD",
       success: false,
     };
+
     if (!user) {
       await this.loginHistory.record({
         ...attemptInput,
@@ -274,7 +283,8 @@ export class AuthService extends LoggedService {
     if (creds.mfaEnabled) {
       const challengeToken = await this.jwt.signMfaChallengeToken({
         sub: user.id,
-        deviceFingerprint: input.device?.fingerprint,
+        deviceId: input.device?.fingerprint,
+        sessionId: "",
       });
       return { mfaRequired: true, challengeToken };
     }
@@ -284,13 +294,39 @@ export class AuthService extends LoggedService {
       image: user.image ?? "",
     };
 
-    return this.completeLogin(
-      this.db,
-      authUser,
-      input.device,
-      "PASSWORD",
-      false,
+    return this.completeLogin(authUser, input.device, "PASSWORD", false);
+  }
+
+  async verifyMfaAndCompleteLogin(
+    challengeToken: string,
+    code: string,
+    device: DeviceInput,
+  ) {
+    const payload = await this.jwt.verifyMfaChallengeToken(challengeToken);
+    if (!payload) throw Errors.auth.mfaChallengeInvalid();
+
+    const user = await this.userService.getById(payload.sub);
+    if (!user) throw Errors.user.notFound();
+
+    const creds = await this.credentialService.getCredential(user.id);
+    if (!creds.mfaEnabled || !creds.mfaSecretEncrypted) {
+      throw Errors.auth.mfaChallengeInvalid();
+    }
+
+    const valid = await this.mfaService.verifyCode(
+      creds.mfaSecretEncrypted,
+      code,
     );
+    if (!valid) {
+      await this.securityEvents.record({
+        userId: user.id,
+        eventType: "SUSPICIOUS_LOGIN_BLOCKED",
+      });
+      throw Errors.auth.mfaChallengeInvalid();
+    }
+
+    const authUser = { ...user, image: user.image ?? "" };
+    return this.completeLogin(authUser, device, "PASSWORD", false);
   }
 
   // auth.service.ts
@@ -308,7 +344,7 @@ export class AuthService extends LoggedService {
     this.logger?.info({ userId: user.id }, "Email verified");
   }
 
-  async refreshTokens(input: RefreshInput): Promise<RefreshResponse> {
+  async refreshTokens(input: RefreshInput) {
     const hashBuf = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(input.refreshToken),
@@ -317,17 +353,19 @@ export class AuthService extends LoggedService {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
 
-    let device = await this.deviceRepo.findByRefreshTokenHash(tokenHash);
+    let device =
+      await this.deviceService.getActiveDeviceByRefreshToken(tokenHash);
 
     if (!device) {
       // Stale token reuse — potential theft (Technical Design §3.4)
       // Revoke the device by fingerprint if we can find it
-      const fingerDevice = await this.deviceRepo.findByRefreshTokenHash(
-        input.refreshToken,
-      );
+      const fingerDevice =
+        await this.deviceService.getActiveDeviceByRefreshToken(
+          input.refreshToken,
+        );
       if (fingerDevice) {
-        await this.deviceRepo.revoke(fingerDevice.id);
-        await this.deviceRepo.bumpTokenVersion(fingerDevice.id);
+        await this.deviceService.revoke(fingerDevice.id);
+        await this.deviceService.bumpTokenVersion(fingerDevice.id);
         await this.securityEvents.record({
           userId: fingerDevice.userId,
           deviceId: fingerDevice.id,
@@ -341,10 +379,10 @@ export class AuthService extends LoggedService {
       throw Errors.device.revoked();
     }
 
-    const user = await this.userRepo.findById(device.userId);
+    const user = await this.userService.getById(device.userId);
     if (!user) throw Errors.auth.tokenInvalid();
 
-    await this.ensureActive(user);
+    await this.ensureActive(user.status);
 
     // Rotate
     const newRefreshToken = this.generateRefreshToken();
@@ -359,23 +397,23 @@ export class AuthService extends LoggedService {
     const expiresAt = new Date(
       Date.now() + PLATFORM.SESSION_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
     );
-    device = await this.deviceRepo.rotateRefreshToken(
+    device = await this.deviceService.rotateRefreshToken(
       device.id,
       newHash,
       expiresAt,
     );
 
-    const [_permissions, primaryRole] = await Promise.all([
-      this.rbac.resolvePermissions(user.id),
-      this.rbac.getPrimaryRole(user.id),
-    ]);
+    // const [_permissions, primaryRole] = await Promise.all([
+    //   this.rbac.resolvePermissions(user.id),
+    //   this.rbac.getPrimaryRole(user.id),
+    // ]);
 
     const accessToken = await this.jwt.signAccessToken({
       sub: user.id,
       sessionId: device.id,
       deviceId: device.id,
       tokenVersion: Math.min(user.tokenVersion, device.tokenVersion),
-      role: primaryRole ?? "student",
+      role: "owner",
       type: "access",
     });
     const accessTokenExpiresAt =
@@ -398,9 +436,10 @@ export class AuthService extends LoggedService {
 
   // ── Logout ────────────────────────────────────────────────────
 
-  async logout(userId: string, deviceId: string): Promise<void> {
+  async logout(userId: string, deviceId: string | undefined): Promise<void> {
+    if (!deviceId) throw Errors.device.notFound();
     await this.deviceService.logout(deviceId);
-    await this.deviceRepo.bumpTokenVersion(deviceId);
+    await this.deviceService.bumpTokenVersion(deviceId);
     await this.securityEvents.record({
       userId,
       deviceId,
@@ -410,7 +449,7 @@ export class AuthService extends LoggedService {
 
   async logoutAll(userId: string): Promise<void> {
     await this.deviceService.logoutAll(userId);
-    await this.userRepo.bumpTokenVersion(userId);
+    await this.deviceService.bumpTokenVersion(userId);
     await this.securityEvents.record({
       userId,
       eventType: "ALL_DEVICES_REVOKED",
@@ -424,7 +463,7 @@ export class AuthService extends LoggedService {
   // ── Password management ───────────────────────────────────────
 
   async changePassword(input: ChangePasswordInput): Promise<void> {
-    const creds = await this.authRepo.findByUserId(input.userId);
+    const creds = await this.credentialService.getCredential(input.userId);
     if (!creds) throw Errors.auth.passwordRequired();
 
     const valid = await this.passwordService.verify(
@@ -436,13 +475,13 @@ export class AuthService extends LoggedService {
     assertPasswordStrength(input.newPassword);
 
     const newHash = await this.passwordService.hash(input.newPassword);
-    await this.authRepo.updatePasswordHash(input.userId, newHash);
+    await this.credentialService.updatePassword(input.userId, newHash);
 
     // Bump global tokenVersion — invalidates all OTHER devices immediately
     // but NOT the current device (so the user isn't logged out of the
     // session they just used to change their password — API Contract note
     // on POST /change-password).
-    await this.userRepo.bumpTokenVersion(input.userId);
+    await this.userService.bumpTokenVersion(input.userId);
 
     await this.securityEvents.record({
       userId: input.userId,
@@ -455,13 +494,13 @@ export class AuthService extends LoggedService {
     userId: string;
     password: string;
   }): Promise<void> {
-    const user = await this.userRepo.findById(input.userId);
+    const user = await this.userService.getById(input.userId);
 
     if (!user) {
       throw Errors.user.notFound();
     }
 
-    const existingCreds = await this.authRepo.findByUserId(user.id);
+    const existingCreds = await this.credentialService.getCredential(user.id);
 
     if (existingCreds) {
       throw Errors.auth.passwordAlreadySet();
@@ -469,20 +508,17 @@ export class AuthService extends LoggedService {
 
     assertPasswordStrength(input.password);
     const hash = await this.passwordService.hash(input.password);
-    await this.authRepo.create({
+    await this.credentialService.create({
       userId: user.id,
       passwordHash: hash,
     });
 
     if (user.email) {
-      await this.db
-        .insert(userAuthProviders)
-        .values({
-          userId: user.id,
-          provider: "EMAIL",
-          providerId: user.email.toLowerCase(),
-        })
-        .onConflictDoNothing();
+      await this.providerService.linkProvider({
+        userId: user.id,
+        provider: "PASSWORD",
+        providerId: user.email.toLowerCase(),
+      });
     }
 
     await this.securityEvents.record({
@@ -491,13 +527,64 @@ export class AuthService extends LoggedService {
     });
   }
 
+  async resetPassword(token: string, newPassword: string) {
+    assertPasswordStrength(newPassword);
+
+    const record = await this.passwordReset.consumeToken(token); // throws resetTokenInvalid/Expired
+    const passwordHash = await this.passwordService.hash(newPassword);
+    await this.credentialService.updatePassword(record.userId, passwordHash);
+    await this.userService.bumpTokenVersion(record.userId);
+
+    // Password reset = assume compromise. Kill every existing session so a
+    // stolen session token doesn't survive a password reset.
+    await this.deviceService.logoutAll(record.userId);
+    await this.securityEvents.record({
+      userId: record.userId,
+      eventType: "PASSWORD_RESET",
+    });
+
+    const user = await this.userService.getById(record.userId);
+    if (user) {
+      const template = resetPasswordConfirmedTemplate({
+        name: user.name,
+        loginUrl: `${this.config.WEB_URL}/auth/login`,
+      });
+      await this.email.send({
+        to: user.email,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        tags: { type: "password_reset_confirmed" },
+      });
+    }
+  }
+
+  async forgotPassword(email: string) {
+    const user = await this.userService.getByEmail(email.trim().toLowerCase());
+    if (!user) return; // no user-enumeration signal
+
+    await this.securityEvents.record({
+      userId: user.id,
+      eventType: "PASSWORD_RESET_REQUESTED",
+    });
+
+    const { rawToken } = await this.passwordReset.createToken(user.id);
+    const resetUrl = `${this.config.APP_URL}/auth/reset-password?token=${rawToken}`;
+    const template = forgotPasswordTemplate({ name: user.name, resetUrl });
+    await this.email.send({
+      to: user.email,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      tags: { type: "password_reset" },
+    });
+  }
   // Private
   private async ensureActive(status: UserStatus): Promise<void> {
     if (status === "SUSPENDED") throw Errors.user.inactive();
   }
 
   private async completeLogin(
-    db: RepoContext,
     user: DbUser,
     deviceInput: DeviceInput,
     method: LoginMethod,
@@ -516,6 +603,7 @@ export class AuthService extends LoggedService {
       deviceInput.fingerprint,
     );
 
+    console.log("EXISTING_DEVICE", existingDevice);
     let device: Device;
 
     if (existingDevice) {
@@ -623,6 +711,38 @@ export class AuthService extends LoggedService {
       },
       isNewUser,
     };
+  }
+
+  async startMfaEnrollment(userId: string) {
+    const user = await this.userService.getById(userId);
+    if (!user) throw Errors.user.notFound();
+    return this.mfaService.beginEnrollment(userId, user.email); // generates + stores unconfirmed secret, returns QR data
+  }
+
+  async confirmMfaEnrollment(userId: string, code: string) {
+    const secret = await this.mfaService.getPendingSecret(userId);
+    if (!secret) throw Errors.auth.mfaEnrollmentNotStarted();
+
+    const valid = await this.mfaService.verifyCode(secret, code);
+    if (!valid) throw Errors.auth.mfaChallengeInvalid();
+
+    await this.credentialService.enableMfa(userId, "TOTP", secret);
+    await this.securityEvents.record({ userId, eventType: "PASSWORD_CHANGED" }); // reuse or add an MFA_ENABLED event type
+  }
+
+  async disableMfa(userId: string) {
+    await this.credentialService.disableMfa(userId);
+  }
+
+  // devices
+
+  async getDevices(userId: string) {
+    const devices = await this.deviceService.getUserDevices(userId);
+    return devices;
+  }
+
+  async revokeDevice(userId: string, deviceId: string | undefined) {
+    //const device = await this.deviceService.f(deviceId);
   }
 
   private generateRefreshToken(): string {

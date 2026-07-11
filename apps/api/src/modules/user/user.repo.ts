@@ -134,15 +134,16 @@ export class UserRepo extends BaseRepo {
    * token issued for this user on every device (Technical Design §3.5).
    * Called on: password change, password reset, logout-all, suspension.
    */
-  async bumpTokenVersion(id: string): Promise<number> {
+  async bumpTokenVersion(userId: string): Promise<number> {
     const rows = await this.db
       .update(users)
       .set({
         tokenVersion: sql`${users.tokenVersion} + 1`,
         updatedAt: new Date(),
       })
-      .where(eq(users.id, id))
+      .where(eq(users.id, userId))
       .returning({ tokenVersion: users.tokenVersion });
+
     const row = rows[0];
     if (!row) throw Errors.user.notFound();
     return row.tokenVersion;

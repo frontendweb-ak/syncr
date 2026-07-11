@@ -3,6 +3,7 @@ export const envSchema = z.object({
   APP_ENV: z.enum(["development", "preview", "staging", "production"]),
   PORT: z.coerce.number().default(4200),
   APP_URL: z.url(),
+  WEB_URL: z.url(),
 
   DATABASE_URL: z.url(),
 

@@ -64,6 +64,12 @@ export class DeviceService extends LoggedService {
     await this.repo.updatePushToken(deviceId, pushToken);
   }
 
+  async revoke(deviceId: string) {
+    return this.repo.revoke(deviceId);
+  }
+  async bumpTokenVersion(deviceId: string) {
+    return this.repo.bumpTokenVersion(deviceId);
+  }
   /**
    * Logout current device.
    */

@@ -1,4 +1,4 @@
-import { created, ok } from "../../core/base/base.controller";
+import { created, noContent, ok } from "../../core/base/base.controller";
 import type { AppCtx } from "../../types/env";
 import { AuthService } from "./auth.service";
 
@@ -66,5 +66,135 @@ export const authController = {
       success: true,
       message: "Email verified successfully.",
     });
+  },
+
+  async refresh(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    console.log("Body", body);
+    const result = await service.refreshTokens(body);
+    return ok(c, result);
+  },
+
+  async forgotPassword(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    // Always 200 regardless of whether the email exists — never leak
+    // account existence through this endpoint.
+    await service.forgotPassword(body.email);
+    return ok(c, {
+      success: true,
+      message: "If that email exists, a reset link has been sent.",
+    });
+  },
+
+  async resetPassword(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    await service.resetPassword(body.token, body.password);
+    return ok(c, {
+      success: true,
+      message: "Password reset. Please log in again.",
+    });
+  },
+
+  async changePassword(c: AppCtx) {
+    const auth = c.get("auth");
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    await service.changePassword({
+      userId: auth.sub,
+      deviceId: auth.deviceId,
+      currentPassword: body.currentPassword,
+      newPassword: body.newPassword,
+    });
+    return ok(c, { success: true });
+  },
+
+  // logout
+
+  async logout(c: AppCtx) {
+    const auth = c.get("auth");
+    const service = makeAuthService(c);
+    await service.logout(auth.sub, auth.deviceId);
+    c.header(
+      "Set-Cookie",
+      "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/refresh; Max-Age=0",
+    );
+    return ok(c, { success: true });
+  },
+
+  async logoutAll(c: AppCtx) {
+    const auth = c.get("auth");
+    const service = makeAuthService(c);
+    await service.logoutAll(auth.sub);
+    c.header(
+      "Set-Cookie",
+      "refreshToken=; HttpOnly; Secure; SameSite=Strict; Path=/api/v1/auth/refresh; Max-Age=0",
+    );
+    return ok(c, { success: true });
+  },
+
+  // devices
+
+  async getDevices(c: AppCtx) {
+    const auth = c.get("auth");
+    const service = makeAuthService(c);
+    const devices = await service.getDevices(auth.sub);
+    return ok(c, {
+      devices: devices.map((d) => ({
+        id: d.id,
+        deviceType: d.deviceType,
+        platform: d.platform,
+        deviceName: d.deviceName,
+        lastActiveAt: d.lastActiveAt,
+        isCurrentDevice: d.id === auth.deviceId,
+        status: d.status,
+      })),
+    });
+  },
+
+  async revokeDevice(c: AppCtx) {
+    const auth = c.get("auth");
+    const deviceId = c.req.param("id");
+
+    const service = makeAuthService(c);
+    await service.logout(auth.sub, deviceId);
+    return ok(c, { revoked: true });
+  },
+  // verify mfa
+  async verifyMfa(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    const result = await service.verifyMfaAndCompleteLogin(
+      body.challengeToken,
+      body.code,
+      c.get("device"),
+    );
+    return ok(c, result);
+  },
+
+  async enableMfa(c: AppCtx) {
+    const auth = c.get("auth");
+    const service = makeAuthService(c);
+    // Returns { secret, otpauthUrl, qrCodeDataUrl } — MFA isn't actually
+    // "on" until confirmMfa verifies the user can generate a valid code.
+    const result = await service.startMfaEnrollment(auth.sub);
+    return ok(c, result);
+  },
+
+  async confirmMfa(c: AppCtx) {
+    const auth = c.get("auth");
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    await service.confirmMfaEnrollment(auth.sub, body.code);
+    return ok(c, { success: true, message: "MFA enabled." });
+  },
+
+  async disableMfa(c: AppCtx) {
+    const auth = c.get("auth");
+    const service = makeAuthService(c);
+    await service.disableMfa(auth.sub);
+    return noContent(c);
   },
 };

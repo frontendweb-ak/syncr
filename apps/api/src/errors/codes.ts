@@ -84,7 +84,7 @@ export const ErrorCode = {
   // ── Auth: MFA ─────────────────────────────────────────────────
   AUTH_MFA_ALREADY_ENABLED: "AUTH_MFA_ALREADY_ENABLED",
   AUTH_MFA_NOT_ENABLED: "AUTH_MFA_NOT_ENABLED",
-
+  AUTH_MFA_INVALID: "AUTH_MFA_INVALID",
   // ── Auth: RBAC ────────────────────────────────────────────────
   AUTH_ROLE_FORBIDDEN: "AUTH_ROLE_FORBIDDEN",
   AUTH_ROLE_REQUIRED: "AUTH_ROLE_REQUIRED",

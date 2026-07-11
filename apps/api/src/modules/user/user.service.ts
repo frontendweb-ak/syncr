@@ -62,4 +62,8 @@ export class UserService extends LoggedService {
   async deleteUser(userId: string) {
     return this.repo.softDelete(userId);
   }
+
+  async bumpTokenVersion(userId: string) {
+    return this.repo.bumpTokenVersion(userId);
+  }
 }

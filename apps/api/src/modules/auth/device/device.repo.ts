@@ -154,7 +154,27 @@ export class DeviceRepo extends BaseRepo {
       .from(devices)
       .where(and(eq(devices.userId, userId), eq(devices.status, "ACTIVE")));
   }
+
   async findByUserIdAndFingerprint(
+    userId: string,
+    fingerprint: string,
+  ): Promise<Device | null> {
+    const [device] = await this.db
+      .select()
+      .from(devices)
+      .where(
+        and(
+          eq(devices.userId, userId),
+          eq(devices.fingerprint, fingerprint),
+          //eq(devices.status, "ACTIVE"),
+        ),
+      )
+      .limit(1);
+
+    return device ?? null;
+  }
+
+  async findActiveByUserIdAndFingerprint(
     userId: string,
     fingerprint: string,
   ): Promise<Device | null> {
@@ -172,6 +192,7 @@ export class DeviceRepo extends BaseRepo {
 
     return device ?? null;
   }
+
   async countActiveByUserId(userId: string): Promise<number> {
     const result = await this.db
       .select({

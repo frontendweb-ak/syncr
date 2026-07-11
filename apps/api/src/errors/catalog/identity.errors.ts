@@ -42,7 +42,6 @@ export const identityErrors = {
         "Refresh token has already been used and was revoked for safety",
         ErrorCode.AUTH_REFRESH_TOKEN_REUSED,
       ),
-
     // login session
     sessionNotFound: () =>
       new NotFoundException("Session", ErrorCode.AUTH_SESSION_NOT_FOUND),
@@ -256,6 +255,18 @@ export const identityErrors = {
         ErrorCode.AUTH_SECURITY_EVENT_CREATE_FAILED,
         "Failed to create security event",
       ),
+
+    // mfa
+    mfaChallengeInvalid: () =>
+      new UnauthorizedException(
+        "Mfa challenge invalid",
+        ErrorCode.AUTH_MFA_INVALID,
+      ),
+    mfaEnrollmentNotStarted: () =>
+      new UnauthorizedException(
+        "Mfa not enabled",
+        ErrorCode.AUTH_MFA_NOT_ENABLED,
+      ),
   },
 
   apiKey: {
@@ -290,6 +301,12 @@ export const identityErrors = {
         "Device has been revoked",
         ErrorCode.AUTH_DEVICE_REVOKED,
       ),
+    expired: () =>
+      new UnauthorizedException(
+        "Device session has expired",
+        ErrorCode.AUTH_DEVICE_EXPIRED,
+      ),
+
     notFound: () => new NotFoundException("Device", ErrorCode.DEVICE_NOT_FOUND),
     fingerprintRequired: () =>
       new BadRequestException(

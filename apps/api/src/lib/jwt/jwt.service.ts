@@ -15,7 +15,8 @@ export type TokenType =
   | "refresh"
   | "email_verification"
   | "password_reset"
-  | "magic_link";
+  | "magic_link"
+  | "mfa_challenge";
 export interface EmailVerificationPayload {
   sub: string;
   type: "email_verification";
@@ -30,12 +31,19 @@ export interface MagicLinkPayload {
   sub: string;
   type: "magic_link";
 }
+export interface MfaChallengePayload {
+  sub: string;
+  sessionId: string;
+  deviceId: string;
+  type: "mfa_challenge";
+}
 type AnyTokenPayload =
   | AccessTokenPayload
   | RefreshTokenPayload
   | EmailVerificationPayload
   | PasswordResetPayload
-  | MagicLinkPayload;
+  | MagicLinkPayload
+  | MfaChallengePayload;
 export class JwtService {
   private readonly accessSecret: Uint8Array;
   private readonly refreshSecret: Uint8Array;
@@ -261,6 +269,54 @@ export class JwtService {
       return {
         sub: payload.sub,
         type: "email_verification",
+      };
+    } catch (error) {
+      this.handleJoseError(error);
+    }
+  }
+
+  // mfa
+  async signMfaChallengeToken(
+    payload: Omit<MfaChallengePayload, "type">,
+  ): Promise<string> {
+    return new SignJWT({
+      sessionId: payload.sessionId,
+      deviceId: payload.deviceId,
+      type: "mfa_challenge",
+    })
+      .setProtectedHeader({
+        alg: ALGORITHM,
+        typ: "JWT",
+      })
+      .setSubject(payload.sub)
+      .setIssuer(this.config.JWT_ISSUER)
+      .setAudience(this.config.JWT_AUDIENCE)
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(this.accessSecret);
+  }
+
+  async verifyMfaChallengeToken(token: string): Promise<MfaChallengePayload> {
+    try {
+      const { payload } = await jwtVerify(token, this.accessSecret, {
+        issuer: this.config.JWT_ISSUER,
+        audience: this.config.JWT_AUDIENCE,
+        algorithms: [ALGORITHM],
+      });
+
+      if (payload.type !== "mfa_challenge") {
+        throw Errors.auth.tokenInvalid();
+      }
+
+      if (!payload.sub) {
+        throw Errors.auth.tokenInvalid();
+      }
+
+      return {
+        sub: payload.sub,
+        sessionId: payload.sessionId as string,
+        deviceId: payload.deviceId as string,
+        type: "mfa_challenge",
       };
     } catch (error) {
       this.handleJoseError(error);

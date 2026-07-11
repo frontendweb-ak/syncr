@@ -1,4 +1,4 @@
-import { EmailTemplate } from "../email.types";
+import type { EmailTemplate } from "../email.types";
 
 export interface VerifyEmailTemplateInput {
   name: string;

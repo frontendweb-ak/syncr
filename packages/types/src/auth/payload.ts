@@ -63,3 +63,23 @@ export interface SecurityEventInput {
   ipAddress?: string;
   metadata?: Record<string, unknown>;
 }
+
+export interface RefreshInput {
+  refreshToken: string;
+}
+
+export interface ChangePasswordInput {
+  userId: string;
+  deviceId: string;
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface CreatePasswordResetTokenInput {
+  userId: string;
+  tokenHash: string;
+  status: "PENDING";
+  expiresAt: Date;
+  ipAddress?: string;
+  userAgent?: string;
+}
