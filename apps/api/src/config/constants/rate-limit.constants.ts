@@ -10,21 +10,17 @@ export const RATE_LIMIT = {
   /* Authentication                                                              */
   /* -------------------------------------------------------------------------- */
 
-  LOGIN: { REQUESTS: 5, WINDOW_SECONDS: 60, LOCKOUT_MINUTES: 15 },
-  REGISTER: { REQUESTS: 5, WINDOW_SECONDS: 60 },
-  REFRESH_TOKEN: { REQUESTS: 30, WINDOW_SECONDS: 60 },
-  LOGOUT: { REQUESTS: 30, WINDOW_SECONDS: 60 },
-  LOGOUT_ALL: { REQUESTS: 5, WINDOW_SECONDS: 300 },
+  REGISTER: { REQUESTS: 5, WINDOW_SECONDS: 3600 },
+  LOGIN: { REQUESTS: 10, WINDOW_SECONDS: 300 },
+  GOOGLE_LOGIN: { REQUESTS: 30, WINDOW_SECONDS: 300 },
+  VERIFY_EMAIL: { REQUESTS: 10, WINDOW_SECONDS: 300 },
+  REFRESH_TOKEN: { REQUESTS: 60, WINDOW_SECONDS: 300 },
   FORGOT_PASSWORD: { REQUESTS: 5, WINDOW_SECONDS: 3600 },
-  RESET_PASSWORD: { REQUESTS: 5, WINDOW_SECONDS: 3600 },
-  VERIFY_EMAIL: { REQUESTS: 10, WINDOW_SECONDS: 3600 },
-  RESEND_EMAIL: { REQUESTS: 5, WINDOW_SECONDS: 3600 },
-  OTP_REQUEST: { REQUESTS: 5, WINDOW_SECONDS: 600 },
-  OTP_VERIFY: { REQUESTS: 10, WINDOW_SECONDS: 600 },
-  MAGIC_LINK: { REQUESTS: 5, WINDOW_SECONDS: 3600 },
-  MFA_CHALLENGE: { REQUESTS: 10, WINDOW_SECONDS: 300 },
+  RESET_PASSWORD: { REQUESTS: 10, WINDOW_SECONDS: 300 },
   MFA_VERIFY: { REQUESTS: 10, WINDOW_SECONDS: 300 },
-
+  MFA_ENABLE: { REQUESTS: 10, WINDOW_SECONDS: 300 },
+  MFA_ENABLE_CONFIRM: { REQUESTS: 10, WINDOW_SECONDS: 300 },
+  MFA_DISABLE: { REQUESTS: 5, WINDOW_SECONDS: 300 },
   /* -------------------------------------------------------------------------- */
   /* OAuth / SSO                                                                 */
   /* -------------------------------------------------------------------------- */

@@ -63,6 +63,7 @@ auth.post(
 );
 auth.post(
   "/reset-password",
+  rateLimitMiddleware("RESET_PASSWORD"),
   validate(ResetPasswordSchema),
   authController.resetPassword,
 );
@@ -83,9 +84,10 @@ auth.post(
 
 // Second step of login when the account has MFA enabled — loginEmail
 // returns a short-lived challengeToken instead of tokens in that case.
-auth.post("/mfa/verify", validate(MfaVerifySchema), authController.verifyMfa);
+
 auth.post(
   "/oauth/google",
+  rateLimitMiddleware("GOOGLE_LOGIN"),
   validate(GoogleLoginSchema),
   authController.loginGoogle,
 );
@@ -97,16 +99,34 @@ auth.post("/logout-all", authMiddleware, authController.logoutAll);
 auth.get("/devices", authMiddleware, authController.getDevices);
 auth.delete("/devices/:deviceId", authMiddleware, authController.revokeDevice);
 
-auth.post("/mfa/enable", authMiddleware, authController.enableMfa);
+// mfa
+auth.post(
+  "/mfa/verify",
+  rateLimitMiddleware("MFA_VERIFY"),
+  validate(MfaVerifySchema),
+  authController.verifyMfa,
+);
+auth.post(
+  "/mfa/enable",
+  authMiddleware,
+  rateLimitMiddleware("MFA_ENABLE"),
+  authController.enableMfa,
+);
 
 auth.post(
   "/mfa/enable/confirm",
   authMiddleware,
+  rateLimitMiddleware("MFA_ENABLE_CONFIRM"),
   validate(MfaEnableConfirmSchema),
   authController.confirmMfa,
 );
 
-auth.post("/mfa/disable", authMiddleware, authController.disableMfa);
+auth.post(
+  "/mfa/disable",
+  authMiddleware,
+  rateLimitMiddleware("MFA_DISABLE"),
+  authController.disableMfa,
+);
 
 export { auth as authRoutes };
 
