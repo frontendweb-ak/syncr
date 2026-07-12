@@ -1,16 +1,16 @@
 import { sql } from "drizzle-orm";
 import {
-    boolean,
-    index,
-    integer,
-    jsonb,
-    pgTable,
-    text,
-    timestamp,
-    uniqueIndex,
-    uuid,
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
-import { userStatus } from "../../enums";
+import { platformRole, userStatus } from "../../enums";
 import { timestamps } from "../common";
 
 export const users = pgTable(
@@ -23,6 +23,7 @@ export const users = pgTable(
     image: text("image"),
     status: userStatus("status").notNull().default("PENDING"),
     lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+    platformRole: platformRole("platform_role").default("USER").notNull(),
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .notNull()

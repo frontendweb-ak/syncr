@@ -9,12 +9,14 @@ import {
   LOGIN_METHODS,
   MFA_TYPE,
   PASSWORD_RESET_TOKEN_STATUS,
+  PLATFORM_ROLE,
   SECURITY_EVENT_TYPE,
   USER_STATUS,
   VERIFICATION_STATUS,
 } from "@syncr/types";
 import { pgEnum } from "drizzle-orm/pg-core";
 
+export const platformRole = pgEnum("platform_role", PLATFORM_ROLE);
 // user status
 export const userStatus = pgEnum("user_status", USER_STATUS);
 // Auth provider

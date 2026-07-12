@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -26,7 +27,7 @@ export const roles = pgTable(
     description: text("description"),
     isSystem: boolean("is_system").default(false).notNull(),
     isDefault: boolean("is_default").default(false).notNull(),
-    priority: text("priority").default("100"),
+    priority: integer("priority").default(100).notNull(),
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
@@ -35,10 +36,9 @@ export const roles = pgTable(
     ...timestamps,
   },
   (table) => [
-    uniqueIndex("roles_slug_unique").on(
-      table.organizationId,
-      sql`lower(${table.slug})`,
-    ),
+    uniqueIndex("roles_system_slug_uidx")
+      .on(sql`lower(${table.slug})`)
+      .where(sql`${table.organizationId} IS NULL`),
     index("roles_org_idx").on(table.organizationId),
     index("roles_system_idx").on(table.isSystem),
   ],

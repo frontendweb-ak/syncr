@@ -24,7 +24,6 @@ export const workspaces = pgTable(
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-
     slug: text("slug").notNull(),
     name: text("name").notNull(),
     displayName: text("display_name"),
@@ -37,9 +36,7 @@ export const workspaces = pgTable(
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
       .notNull(),
-    deletedAt: timestamp("deleted_at", {
-      withTimezone: true,
-    }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
@@ -47,14 +44,10 @@ export const workspaces = pgTable(
       table.organizationId,
       sql`lower(${table.slug})`,
     ),
-
-    uniqueIndex("workspace_default_unique").on(
-      table.organizationId,
-      table.isDefault,
-    ),
-
+    uniqueIndex("workspace_one_default_per_org_uidx")
+      .on(table.organizationId)
+      .where(sql`${table.isDefault} = true`),
     index("workspace_org_idx").on(table.organizationId),
-
     index("workspace_status_idx").on(table.status),
   ],
 );

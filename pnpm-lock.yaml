@@ -52,7 +52,7 @@ importers:
     dependencies:
       '@cloudflare/workers-types':
         specifier: ^5.20260708.1
-        version: 5.20260710.1
+        version: 5.20260711.1
       '@hono/node-server':
         specifier: ^1.19.5
         version: 1.19.14(hono@4.12.29)
@@ -79,7 +79,7 @@ importers:
         version: 17.4.2
       drizzle-orm:
         specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260710.1)(postgres@3.4.9)
+        version: 0.45.2(@cloudflare/workers-types@5.20260711.1)(postgres@3.4.9)
       hono:
         specifier: ^4.9.7
         version: 4.12.29
@@ -128,7 +128,7 @@ importers:
         version: 0.31.10
       drizzle-orm:
         specifier: 0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260710.1)(postgres@3.4.9)
+        version: 0.45.2(@cloudflare/workers-types@5.20260711.1)(postgres@3.4.9)
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
@@ -309,8 +309,8 @@ packages:
   '@changesets/write@0.4.0':
     resolution: {integrity: sha512-CdTLvIOPiCNuH71pyDu3rA+Q0n65cmAbXnwWH84rKGiFumFzkmHNT8KHTMEchcxN+Kl8I54xGUhJ7l3E7X396Q==}
 
-  '@cloudflare/workers-types@5.20260710.1':
-    resolution: {integrity: sha512-4ooaY2Pb5XGwDn8Fzm6jnTAJkIX0R5LBvL9euQpp2T58sQItlAQd9yivAlkwGhpY5cM1u81/9HaXwKAjXwtyzA==}
+  '@cloudflare/workers-types@5.20260711.1':
+    resolution: {integrity: sha512-yY6GXfyrHJa33EWaSzS5N56Lsll02kgHo4Qodz2l2DNl4L6L5yXBMZVMvcYArirdYA1xn+o8LKVRQGdRpmSMzA==}
 
   '@commitlint/cli@21.2.1':
     resolution: {integrity: sha512-blsZGe29hJ72VGEFVl72IVYX+1vsfINpjA9yWQA6i7OKD/McGEOXg08sKIRKjFk4JvzhV/9n0l3i6NooPLTNfg==}
@@ -2434,7 +2434,7 @@ snapshots:
       human-id: 4.2.0
       prettier: 2.8.8
 
-  '@cloudflare/workers-types@5.20260710.1': {}
+  '@cloudflare/workers-types@5.20260711.1': {}
 
   '@commitlint/cli@21.2.1(@types/node@26.1.1)(conventional-commits-parser@7.1.0)(typescript@6.0.3)':
     dependencies:
@@ -3172,9 +3172,9 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.0
 
-  drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260710.1)(postgres@3.4.9):
+  drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260711.1)(postgres@3.4.9):
     optionalDependencies:
-      '@cloudflare/workers-types': 5.20260710.1
+      '@cloudflare/workers-types': 5.20260711.1
       postgres: 3.4.9
 
   emoji-regex@10.6.0: {}

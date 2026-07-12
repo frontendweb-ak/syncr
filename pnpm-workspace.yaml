@@ -16,14 +16,6 @@ packages:
 
   # Exclude tests
   - "!**/test/**"
-
-onlyBuiltDependencies:
-  - "esbuild"
-  - "sharp"
-  - "unrs-resolver"
-
-ignoredBuiltDependencies:
-  - esbuild
-
 allowBuilds:
   esbuild: true
+  sharp: true

@@ -640,7 +640,6 @@ export class AuthService extends LoggedService {
       sub: user.id,
       sessionId: device.id,
       deviceId: device.id,
-
       userTokenVersion: user.tokenVersion,
       deviceTokenVersion: device.tokenVersion,
       role: "owner",

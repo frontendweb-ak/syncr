@@ -1,3 +1,5 @@
+export const PLATFORM_ROLE = ["USER", "ADMIN", "SUPER_ADMIN"] as const;
+export type PlatformRole = (typeof PLATFORM_ROLE)[number];
 export const USER_STATUS = [
   "PENDING",
   "ACTIVE",

@@ -14,7 +14,9 @@ export const permissions = pgTable(
   "permissions",
   {
     id: uuid("permission_id").defaultRandom().primaryKey(),
-    name: text("name").notNull(), // syncr:repository:read
+    name: text("name").generatedAlwaysAs(
+      (): ReturnType<typeof sql> => sql`'syncr:' || resource || ':' || action`,
+    ),
     resource: text("resource").notNull(),
     action: text("action").notNull(),
     description: text("description"),
@@ -30,9 +32,7 @@ export const permissions = pgTable(
       sql`lower(${table.resource})`,
       sql`lower(${table.action})`,
     ),
-
     index("permissions_resource_idx").on(table.resource),
-
     index("permissions_system_idx").on(table.isSystem),
   ],
 );

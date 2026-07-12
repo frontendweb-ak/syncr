@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   index,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -10,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { organizationInviteStatusEnum } from "../../enums/organization";
+import { roles } from "../auth";
 import { users } from "../auth/users";
 import { timestamps } from "../common/timestamps";
 import { organizations } from "./organizations";
@@ -35,13 +37,19 @@ export const organizationInvites = pgTable(
       onDelete: "set null",
       onUpdate: "cascade",
     }),
+    roleId: uuid("role_id").references(() => roles.id, {
+      onDelete: "set null",
+    }),
     tokenHash: text("token_hash").notNull(),
     message: text("message"),
     status: organizationInviteStatusEnum("status").default("PENDING").notNull(),
+
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),
-    resentCount: text("resent_count").default("0").notNull(),
+
+    resentCount: integer("resent_count").default(0).notNull(),
+
     lastSentAt: timestamp("last_sent_at", { withTimezone: true }).defaultNow(),
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
@@ -51,11 +59,8 @@ export const organizationInvites = pgTable(
   },
   (table) => [
     index("organization_invites_org_idx").on(table.organizationId),
-
     index("organization_invites_email_idx").on(table.email),
-
     index("organization_invites_status_idx").on(table.status),
-
     uniqueIndex("organization_invites_token_unique").on(table.tokenHash),
   ],
 );

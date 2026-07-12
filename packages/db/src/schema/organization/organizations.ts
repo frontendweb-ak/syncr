@@ -39,23 +39,16 @@ export const organizations = pgTable(
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
       .notNull(),
-    deletedAt: timestamp("deleted_at", {
-      withTimezone: true,
-    }),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
     uniqueIndex("organizations_slug_unique").on(sql`lower(${table.slug})`),
-
-    uniqueIndex("organizations_personal_owner_unique").on(
-      table.ownerUserId,
-      table.isPersonal,
-    ),
-
+    uniqueIndex("organizations_one_personal_per_owner_uidx")
+      .on(table.ownerUserId)
+      .where(sql`${table.isPersonal} = true`),
     index("organizations_owner_idx").on(table.ownerUserId),
-
     index("organizations_status_idx").on(table.status),
-
     index("organizations_plan_idx").on(table.plan),
   ],
 );
