@@ -54,6 +54,7 @@ export class AuthService extends LoggedService {
   private readonly googleService: GoogleOAuthService;
   private readonly mfaService: MfaService;
   private readonly passwordReset: PasswordResetService;
+
   constructor(
     db: RepoContext,
     jwt: JwtService,

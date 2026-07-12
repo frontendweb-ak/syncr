@@ -14,17 +14,12 @@ export const permissions = pgTable(
   "permissions",
   {
     id: uuid("permission_id").defaultRandom().primaryKey(),
-
+    name: text("name").notNull(), // syncr:repository:read
     resource: text("resource").notNull(),
-
     action: text("action").notNull(),
-
     description: text("description"),
-
     isSystem: boolean("is_system").default(true).notNull(),
-
     priority: integer("priority").default(100).notNull(),
-
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)

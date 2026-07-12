@@ -1,0 +1,40 @@
+import { eq } from 'drizzle-orm'
+import { languages } from '../src/schema'
+import type { Db } from '../src/types'
+
+const DATA = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+  { code: 'as', name: 'Assamese', nativeName: 'অসমীয়া' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা' },
+  { code: 'brx', name: 'Bodo', nativeName: "बर'" },
+  { code: 'doi', name: 'Dogri', nativeName: 'डोगरी' },
+  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી' },
+  { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ' },
+  { code: 'ks', name: 'Kashmiri', nativeName: 'कॉशुर' },
+  { code: 'kok', name: 'Konkani', nativeName: 'कोंकणी' },
+  { code: 'mai', name: 'Maithili', nativeName: 'मैथिली' },
+  { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം' },
+  { code: 'mni', name: 'Manipuri', nativeName: 'ꯃꯤꯇꯩ ꯂꯣꯟ' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी' },
+  { code: 'ne', name: 'Nepali', nativeName: 'नेपाली' },
+  { code: 'or', name: 'Odia', nativeName: 'ଓଡ଼ିଆ' },
+  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ' },
+  { code: 'sa', name: 'Sanskrit', nativeName: 'संस्कृतम्' },
+  { code: 'sat', name: 'Santali', nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ' },
+  { code: 'sd', name: 'Sindhi', nativeName: 'سنڌي' },
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు' },
+  { code: 'ur', name: 'Urdu', nativeName: 'اردو' },
+] as const
+export async function seedLanguages(db: Db) {
+  for (const language of DATA) {
+    const existing = await db.query.languages.findFirst({
+      where: eq(languages.code, language.code),
+    })
+
+    if (!existing) {
+      await db.insert(languages).values(language)
+    }
+  }
+}

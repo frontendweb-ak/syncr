@@ -14,6 +14,19 @@ import { UnauthorizedException } from "../un-authrized-error.error";
 
 export const identityErrors = {
   auth: {
+    insufficientPermission: (permission?: string) =>
+      new ForbiddenException(
+        permission
+          ? `Missing permission: ${permission}`
+          : "Insufficient permissions",
+        ErrorCode.AUTH_INSUFFICIENT_PERMISSION,
+      ),
+
+    permissionRequired: () =>
+      new BadRequestException(
+        "Permission is required",
+        ErrorCode.AUTH_PERMISSION_REQUIRED,
+      ),
     // tokens
     tokenMissing: () =>
       new UnauthorizedException(

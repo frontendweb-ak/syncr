@@ -9,7 +9,7 @@ import type { RepoContext } from "../../../core/base/base.repo";
 import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
 import type { JwtService } from "../../../lib";
-import { ApiKeyRepo, type ApiKey, type NewApiKey } from "./api-key.repo";
+import { type ApiKey, ApiKeyRepo, type NewApiKey } from "./api-key.repo";
 
 const KEY_PREFIX = "syncr_live_";
 
@@ -43,16 +43,14 @@ export class ApiKeyService extends LoggedService {
 
   // The only place a PAT is minted. Controller calls this and this
   // alone — it must never build prefix/secret/hash itself.
-  async create(input: {
-    userId: string;
-    name: string;
-    description?: string;
-    expiresInDays?: number;
-  }): Promise<{ key: ApiKey; rawKey: string }> {
+  async create(input: NewApiKey) {
     const { rawKey, prefix, secretHash } = this.generateKey();
 
-    const expiresAt = input.expiresInDays
-      ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
+    const expiresAt = input.expiresAt
+      ? new Date(
+          Date.now() +
+            new Date(input.expiresAt).getTime() * 24 * 60 * 60 * 1000,
+        )
       : null;
 
     const key = await this.repo.create({

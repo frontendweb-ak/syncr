@@ -18,57 +18,35 @@ export const organizationInvites = pgTable(
   "organization_invites",
   {
     id: uuid("organization_invite_id").defaultRandom().primaryKey(),
-
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, {
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-
     email: text("email").notNull(),
-
     invitedByUserId: uuid("invited_by_user_id")
       .notNull()
       .references(() => users.id, {
         onDelete: "restrict",
         onUpdate: "cascade",
       }),
-
     acceptedByUserId: uuid("accepted_by_user_id").references(() => users.id, {
       onDelete: "set null",
       onUpdate: "cascade",
     }),
-
     tokenHash: text("token_hash").notNull(),
-
     message: text("message"),
-
     status: organizationInviteStatusEnum("status").default("PENDING").notNull(),
-
-    expiresAt: timestamp("expires_at", {
-      withTimezone: true,
-    }).notNull(),
-
-    acceptedAt: timestamp("accepted_at", {
-      withTimezone: true,
-    }),
-
-    revokedAt: timestamp("revoked_at", {
-      withTimezone: true,
-    }),
-
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
     resentCount: text("resent_count").default("0").notNull(),
-
-    lastSentAt: timestamp("last_sent_at", {
-      withTimezone: true,
-    }).defaultNow(),
-
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }).defaultNow(),
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
       .notNull(),
-
     ...timestamps,
   },
   (table) => [

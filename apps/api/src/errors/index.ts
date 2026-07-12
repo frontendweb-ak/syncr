@@ -18,6 +18,7 @@
 import { commerceErrors } from "./catalog/commerce.errors";
 import { identityErrors } from "./catalog/identity.errors";
 import { platformErrors } from "./catalog/platform.errors";
+import { rbacErrors } from "./catalog/rbac.errors";
 import { workspaceErrors } from "./catalog/workspace.errors";
 
 export * from "./codes";
@@ -29,4 +30,5 @@ export const Errors = {
   ...workspaceErrors, // organization, project, provider, workspace
   ...platformErrors, // sync, appInit, validation, upload, database
   ...commerceErrors, // checkout, payment
+  ...rbacErrors,
 } as const;

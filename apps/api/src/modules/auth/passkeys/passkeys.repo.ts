@@ -1,6 +1,6 @@
 import { passkeys } from "@syncr/db";
 
-import { eq, InferInsertModel, InferSelectModel } from "drizzle-orm";
+import { eq, type InferInsertModel, type InferSelectModel } from "drizzle-orm";
 import { BaseRepo } from "../../../core/base/base.repo";
 
 export type Passkey = InferSelectModel<typeof passkeys>;

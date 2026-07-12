@@ -31,6 +31,47 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   INVALID_PARAM: "Invalid parameter.",
   MISSING_FIELD: "Required field is missing.",
 
+  // ── RBAC: Roles ────────────────────────────────────────────────
+  ROLE_NOT_FOUND: "Role not found.",
+  ROLE_ALREADY_EXISTS: "Role already exists.",
+  ROLE_CREATE_FAILED: "Failed to create role.",
+  ROLE_UPDATE_FAILED: "Failed to update role.",
+  ROLE_DELETE_FAILED: "Failed to delete role.",
+  ROLE_SYSTEM_PROTECTED: "System roles cannot be modified or deleted.",
+
+  // ── RBAC: Permissions ──────────────────────────────────────────
+  PERMISSION_NOT_FOUND: "Permission not found.",
+  PERMISSION_ALREADY_EXISTS: "Permission already exists.",
+  PERMISSION_CREATE_FAILED: "Failed to create permission.",
+  PERMISSION_UPDATE_FAILED: "Failed to update permission.",
+  PERMISSION_DELETE_FAILED: "Failed to delete permission.",
+
+  // ── RBAC: Role Permissions ─────────────────────────────────────
+  ROLE_PERMISSION_ALREADY_EXISTS:
+    "Permission is already assigned to this role.",
+  ROLE_PERMISSION_NOT_FOUND: "Role permission relationship not found.",
+
+  // ── RBAC: User Roles ───────────────────────────────────────────
+  USER_ROLE_ALREADY_EXISTS: "Role is already assigned to this user.",
+  USER_ROLE_NOT_FOUND: "User role assignment not found.",
+
+  // ── RBAC: Authorization ────────────────────────────────────────
+  AUTH_INSUFFICIENT_PERMISSION:
+    "You do not have sufficient permissions to perform this action.",
+  AUTH_PERMISSION_REQUIRED: "Permission is required for this operation.",
+  // ── Auth: Passkeys / WebAuthn ──────────────────────────────────
+  AUTH_PASSKEY_LIMIT_REACHED:
+    "Maximum number of passkeys reached for this account.",
+  AUTH_PASSKEY_REVOKED: "This passkey has been revoked.",
+  AUTH_PASSKEY_CLONE_DETECTED: "Potential passkey cloning detected.",
+  AUTH_PASSKEY_COUNTER_MISMATCH: "Passkey security counter validation failed.",
+  AUTH_PASSKEY_CHALLENGE_INVALID: "Passkey challenge is invalid.",
+  AUTH_PASSKEY_CHALLENGE_EXPIRED: "Passkey challenge has expired.",
+  AUTH_PASSKEY_VERIFICATION_FAILED: "Passkey verification failed.",
+  AUTH_PASSKEY_REGISTRATION_FAILED: "Failed to register passkey.",
+  AUTH_PASSKEY_INVALID: "Invalid passkey authentication.",
+  AUTH_PASSKEY_ALREADY_EXISTS: "This passkey is already registered.",
+  AUTH_PASSKEY_NOT_FOUND: "Passkey not found.",
   // Auth: tokens
   AUTH_TOKEN_MISSING: "Authentication token is missing.",
   AUTH_TOKEN_INVALID: "Authentication token is invalid.",

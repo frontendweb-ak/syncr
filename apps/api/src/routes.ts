@@ -2,6 +2,9 @@ import { Hono } from "hono";
 import { apiKeyRoutes } from "./modules/auth/api-key/api-key.route";
 import { authRoutes } from "./modules/auth/auth.route";
 import { healthRoutes } from "./modules/health/health.route";
+import { permissionRoutes } from "./modules/permission/permission.route";
+import { rolePermissionRoutes } from "./modules/role/permission/role-permission.route";
+import { roleRoutes } from "./modules/role/role.route";
 import type { AppContext } from "./types/env";
 
 export const routes = new Hono<AppContext>();
@@ -9,4 +12,7 @@ export const routes = new Hono<AppContext>();
 routes.route("/health", healthRoutes);
 
 routes.route("/auth", authRoutes);
+routes.route("/roles", roleRoutes);
+routes.route("/roles", rolePermissionRoutes);
+routes.route("/permissions", permissionRoutes);
 routes.route("/api/v1/api-keys", apiKeyRoutes);

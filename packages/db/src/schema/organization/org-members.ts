@@ -18,40 +18,26 @@ export const organizationMembers = pgTable(
   "organization_members",
   {
     id: uuid("organization_member_id").defaultRandom().primaryKey(),
-
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, {
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-
     userId: uuid("user_id")
       .notNull()
       .references(() => users.id, {
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-
     invitedByUserId: uuid("invited_by_user_id").references(() => users.id, {
       onDelete: "set null",
       onUpdate: "cascade",
     }),
-
     status: organizationMemberStatusEnum("status").default("INVITED").notNull(),
-
-    joinedAt: timestamp("joined_at", {
-      withTimezone: true,
-    }),
-
-    suspendedAt: timestamp("suspended_at", {
-      withTimezone: true,
-    }),
-
-    removedAt: timestamp("removed_at", {
-      withTimezone: true,
-    }),
-
+    joinedAt: timestamp("joined_at", { withTimezone: true }),
+    suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+    removedAt: timestamp("removed_at", { withTimezone: true }),
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)

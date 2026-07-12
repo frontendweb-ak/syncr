@@ -21,7 +21,6 @@ export const roles = pgTable(
       onDelete: "cascade",
       onUpdate: "cascade",
     }),
-
     name: text("name").notNull(),
     slug: text("slug").notNull(),
     description: text("description"),
@@ -32,10 +31,7 @@ export const roles = pgTable(
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
       .notNull(),
-    deletedAt: timestamp("deleted_at", {
-      withTimezone: true,
-    }),
-
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
     ...timestamps,
   },
   (table) => [
