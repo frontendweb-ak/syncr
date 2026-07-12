@@ -7,8 +7,8 @@ import {
   type InferInsertModel,
   type InferSelectModel,
 } from "drizzle-orm";
-import { BaseRepo } from "../../core/base/base.repo";
-import { Errors } from "../../errors";
+import { BaseRepo } from "../../../core/base/base.repo";
+import { Errors } from "../../../errors";
 
 export type OrganizationMember = InferSelectModel<typeof organizationMembers>;
 export type NewOrganizationMember = InferInsertModel<

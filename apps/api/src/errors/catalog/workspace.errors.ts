@@ -11,6 +11,27 @@ import { NotFoundException } from "../not-found.error";
 
 export const workspaceErrors = {
   organization: {
+    cannotRemoveOwner: () =>
+      new ConflictException(
+        "Transfer ownership before removing this member",
+        ErrorCode.ORG_CANNOT_REMOVE_OWNER,
+      ),
+    notAMember: () =>
+      new ForbiddenException(
+        "You are not a member of this organization",
+        ErrorCode.ORG_NOT_A_MEMBER,
+      ),
+    systemRoleMissing: (slug: string) =>
+      new HttpException(
+        500,
+        ErrorCode.ORG_SYSTEM_ROLE_MISSING,
+        `System role "${slug}" is missing from seed data`,
+      ),
+    slugTaken: () =>
+      new ConflictException(
+        "That organization slug is already in use",
+        ErrorCode.ORG_SLUG_TAKEN,
+      ),
     notFound: () =>
       new NotFoundException("Organization", ErrorCode.ORGANIZATION_NOT_FOUND),
     alreadyExists: () =>
@@ -65,6 +86,13 @@ export const workspaceErrors = {
         500,
         ErrorCode.ORG_WORKSPACE_CREATE_FAILED,
         "Organization workspace created failed",
+      ),
+
+    inviteCreateFailed: () =>
+      new HttpException(
+        500,
+        ErrorCode.ORGANIZATION_INVITE_CREATE_FAILED,
+        "Organization invite creation failed",
       ),
   },
 
