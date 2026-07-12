@@ -19,17 +19,14 @@ export const authController = {
   async register(c: AppCtx) {
     const body = await c.req.json();
     const service = makeAuthService(c);
-    try {
+   
       const result = await service.registerEmail({
         name: body.name,
         email: body.email,
         password: body.password,
       });
       return created(c, result);
-    } catch (err) {
-      console.log("err", err);
-      throw err;
-    }
+    
   },
 
   // login
@@ -176,7 +173,7 @@ export const authController = {
 
   async revokeDevice(c: AppCtx) {
     const auth = c.get("auth");
-    const deviceId = c.req.param("id");
+    const deviceId = c.req.param("deviceId");
 
     const service = makeAuthService(c);
     await service.logout(auth.sub, deviceId);
