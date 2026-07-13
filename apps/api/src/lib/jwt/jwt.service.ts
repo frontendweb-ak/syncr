@@ -31,6 +31,7 @@ export interface MagicLinkPayload {
   sub: string;
   type: "magic_link";
 }
+
 export interface MfaChallengePayload {
   sub: string;
   sessionId: string;

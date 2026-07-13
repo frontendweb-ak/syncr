@@ -18,6 +18,7 @@ function makeAuthService(c: AppCtx) {
 export const authController = {
   async register(c: AppCtx) {
     const body = await c.req.json();
+    console.log("HI", body);
     const service = makeAuthService(c);
    
       const result = await service.registerEmail({

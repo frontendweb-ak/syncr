@@ -85,47 +85,70 @@ export class AuthService extends LoggedService {
     this.passwordReset = new PasswordResetService(db, jwt, config, logger);
   }
 
+  private scoped(tx: RepoContext) {
+    return {
+      users: new UserService(tx, this.jwt, this.config, this.logger),
+      orgs: new OrganizationService(tx, this.jwt, this.config, this.logger),
+      credentials: new CredentialService(
+        tx,
+        this.jwt,
+        this.config,
+        this.logger,
+      ),
+      providers: new AuthProviderService(
+        tx,
+        this.jwt,
+        this.config,
+        this.logger,
+      ),
+    };
+  }
+
   // register
   async registerEmail(input: SignUpInput): Promise<User> {
     assertPasswordStrength(input.password);
 
-    // 0. check existing user
-    const email = input.email.trim().toLowerCase();
-    const existing = await this.userService.getByEmail(email);
-    if (existing) throw Errors.user.emailAlreadyExists();
+    return this.withTransaction(async (tx) => {
+      const s = this.scoped(tx);
+      // 0. check existing user
+      const email = input.email.trim().toLowerCase();
+      const existing = await s.users.getByEmail(email);
+      if (existing) throw Errors.user.emailAlreadyExists();
+      console.log("C", existing);
+      // email
 
-    //
-
-    return await this.withTransaction(async (tx) => {
       // 1. create user
-      const user = await this.userService.createUser({
+      const user = await s.users.createUser({
         name: input.name,
         email,
       });
-
+      console.log("D", user.id);
       // 2. personal organization
-      await this.orgService.createPersonalOrg({
+      const org = await s.orgs.createPersonalOrg({
         userId: user.id,
         userName: input.name,
       });
 
+      console.log("org", org);
+
       // 3. create credentials
       const passwordHash = await this.passwordService.hash(input.password);
-      await this.credentialService.create({ userId: user.id, passwordHash });
-
+      console.log("passwordHash", passwordHash);
+      await s.credentials.create({ userId: user.id, passwordHash });
       // 4. create provider
-      await this.providerService.linkProvider({
+      await s.providers.linkProvider({
         userId: user.id,
         provider: "PASSWORD",
         providerId: email,
       });
-
+      console.log("G");
       const token = await this.jwt.signEmailVerificationToken(user.id);
       const verificationUrl = `${this.config.APP_URL}/auth/verify-email?token=${token}`;
       const template = verifyEmailTemplate({
         name: user.name,
         verificationUrl,
       });
+
       const result = await this.email.send({
         to: user.email,
         subject: template.subject,

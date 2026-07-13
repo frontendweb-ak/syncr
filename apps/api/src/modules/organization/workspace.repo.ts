@@ -5,7 +5,7 @@
 // support "every new org gets exactly one default workspace," which
 // organization creation depends on.
 
-import { workspaces } from "@syncr/db";
+import { workspaceAccess, workspaces } from "@syncr/db";
 import { and, eq, type InferInsertModel } from "drizzle-orm";
 import { BaseRepo } from "../../core/base/base.repo";
 import { Errors } from "../../errors";

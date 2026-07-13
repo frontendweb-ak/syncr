@@ -17,7 +17,7 @@ export class AuthProviderService extends LoggedService {
     db: RepoContext,
     jwt: JwtService,
     config: AppConfig,
-    logger: Logger,
+    logger?: Logger,
   ) {
     super(db, jwt, config, logger);
     this.repo = new AuthProviderRepo(db);

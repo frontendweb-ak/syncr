@@ -6,7 +6,7 @@ import type { DeviceInput } from "@syncr/types";
 import type { Context } from "hono";
 import type { Logger } from "pino";
 import type { AppConfig } from "../config";
-import type { BetterAuthState } from "../lib/auth/better-auth";
+
 import type { AccessTokenPayload, JwtService } from "../lib/jwt";
 import type { AppEnv } from "./cloudflare";
 export type AppVariables = {
@@ -28,8 +28,6 @@ export type AppVariables = {
    * same comment already saying otherwise — fixed to match.
    */
   auth: AccessTokenPayload;
-
-  betterAuth: BetterAuthState;
 
   device: DeviceInput;
 
