@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { apiKeyRoutes } from "./modules/auth/api-key/api-key.route";
 import { authRoutes } from "./modules/auth/auth.route";
+import { componentRoutes } from "./modules/component/component.route";
 import { healthRoutes } from "./modules/health/health.route";
 import { organizationRoutes } from "./modules/organization/organization.route";
 import { permissionRoutes } from "./modules/permission/permission.route";
@@ -18,3 +19,4 @@ routes.route("/roles", rolePermissionRoutes);
 routes.route("/permissions", permissionRoutes);
 routes.route("/api-keys", apiKeyRoutes);
 routes.route("/organizations", organizationRoutes);
+routes.route("/components", componentRoutes);

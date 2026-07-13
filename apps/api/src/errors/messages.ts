@@ -14,6 +14,14 @@
 import type { ErrorCode } from "./codes";
 
 export const ErrorMessage: Record<ErrorCode, string> = {
+  ORGANIZATION_INVITE_CREATE_FAILED: "ORGANIZATION_INVITE_CREATE_FAILED",
+  ORGANIZATION_CREATE_FAILED: "ORGANIZATION_CREATE_FAILED",
+  ORG_INVITE_NOT_PENDING: "ORG_INVITE_NOT_PENDING",
+  ORG_INVITE_INVALID: "ORG_INVITE_INVALID",
+  ORG_MEMBER_CREATE_FAILED: "ORG_MEMBER_CREATE_FAILED",
+  ORG_INVITE_REVOKED: "ORG_INVITE_REVOKED",
+  ORG_INVITE_ALREADY_EXISTS: "ORG_INVITE_ALREADY_EXISTS",
+  ORG_WORKSPACE_CREATE_FAILED: "ORG_WORKSPACE_CREATE_FAILED",
   // HTTP
   BAD_REQUEST: "Bad request.",
   UNAUTHORIZED: "Unauthorized.",
@@ -180,6 +188,14 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   PROFILE_INCOMPLETE: "Complete your profile before continuing.",
 
   // Organization
+  // Organization
+  ORG_CANNOT_REMOVE_OWNER: "The organization owner cannot be removed.",
+
+  ORG_NOT_A_MEMBER: "User is not a member of this organization.",
+
+  ORG_SYSTEM_ROLE_MISSING: "Required system organization role is missing.",
+
+  ORG_SLUG_TAKEN: "Organization slug is already in use.",
   ORGANIZATION_NOT_FOUND: "Organization not found.",
   ORGANIZATION_ALREADY_EXISTS: "Organization already exists.",
   ORGANIZATION_ACCESS_DENIED: "You do not have access to this organization.",
@@ -282,4 +298,45 @@ export const ErrorMessage: Record<ErrorCode, string> = {
     "GitHub App does not have the required permissions.",
   GITHUB_INSTALLATION_ACCESS_EXPIRED:
     "GitHub installation access token has expired.",
+
+  // Component
+  COMPONENT_NOT_FOUND: "Component not found.",
+  COMPONENT_ALREADY_EXISTS: "Component already exists.",
+  COMPONENT_CREATE_FAILED: "Failed to create component.",
+  COMPONENT_UPDATE_FAILED: "Failed to update component.",
+  COMPONENT_DELETE_FAILED: "Failed to delete component.",
+  COMPONENT_DEPRECATE_FAILED: "Failed to deprecate component.",
+
+  // Component Version
+  COMPONENT_VERSION_NOT_FOUND: "Component version not found.",
+  COMPONENT_VERSION_ALREADY_EXISTS: "This component version already exists.",
+  COMPONENT_VERSION_CREATE_FAILED: "Failed to create component version.",
+  COMPONENT_VERSION_PUBLISH_FAILED: "Failed to publish component version.",
+
+  // Component Dependency
+  COMPONENT_DEPENDENCY_NOT_FOUND: "Component dependency not found.",
+  COMPONENT_DEPENDENCY_ALREADY_EXISTS: "Component dependency already exists.",
+
+  // Component Usage
+  COMPONENT_USAGE_NOT_FOUND: "Component usage record not found.",
+
+  COMPONENT_DEPRECATED: "This component has been deprecated.",
+
+  COMPONENT_DEPRECATION_NOTE_REQUIRED: "Deprecation note is required.",
+
+  COMPONENT_HAS_ACTIVE_CONSUMERS:
+    "Component has active consumers and cannot be deleted.",
+
+  COMPONENT_INVALID_VERSION: "Invalid semantic version.",
+
+  COMPONENT_NOOP_REPUBLISH:
+    "This component content already exists in another version.",
+
+  COMPONENT_VERSION_NOT_GREATER:
+    "Version must be greater than the latest published version.",
+
+  COMPONENT_VERSION_UPDATE_FAILED: "Failed to update component version.",
+
+  COMPONENT_VERSION_DELETE_FAILED: "Failed to delete component version.",
+  COMPONENT_SLUG_TAKEN: "",
 };

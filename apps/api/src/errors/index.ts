@@ -16,6 +16,7 @@
 // ─────────────────────────────────────────────────────────────────
 
 import { commerceErrors } from "./catalog/commerce.errors";
+import { componentErrors } from "./catalog/component";
 import { githubErrors } from "./catalog/github.errors";
 import { identityErrors } from "./catalog/identity.errors";
 import { platformErrors } from "./catalog/platform.errors";
@@ -33,4 +34,5 @@ export const Errors = {
   ...commerceErrors, // checkout, payment
   ...rbacErrors,
   ...githubErrors,
+  ...componentErrors,
 } as const;
