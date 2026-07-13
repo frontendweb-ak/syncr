@@ -76,13 +76,14 @@ export class AuthService extends LoggedService {
     this.loginHistory = new LoginHistoryService(db);
     this.passwordService = new PasswordService();
     this.providerService = new AuthProviderService(db, jwt, config, logger);
-    this.orgService = new OrganizationService(db, jwt, config, logger);
+
     // google
     this.googleService = new GoogleOAuthService(config);
     // mfa
     this.mfaService = new MfaService(db, jwt, config, logger);
     // password
     this.passwordReset = new PasswordResetService(db, jwt, config, logger);
+    this.orgService = new OrganizationService(db, jwt, config, logger);
   }
 
   private scoped(tx: RepoContext) {
@@ -359,10 +360,7 @@ export class AuthService extends LoggedService {
       throw Errors.auth.mfaChallengeInvalid();
     }
 
-    const valid = await this.mfaService.verifyCode(
-      creds.mfaSecretEncrypted,
-      code,
-    );
+    const valid = this.mfaService.verifyCode(creds.mfaSecretEncrypted, code);
     if (!valid) {
       await this.securityEvents.record({
         userId: user.id,
@@ -388,6 +386,35 @@ export class AuthService extends LoggedService {
 
     await this.userService.verifyEmail(user.id);
     this.logger?.info({ userId: user.id }, "Email verified");
+  }
+
+  async resendVerification(email: string) {
+    const user = await this.userService.getByEmail(email);
+
+    // Prevent email enumeration attacks
+    if (!user) return {};
+
+    if (user.emailVerified) {
+      return;
+    }
+
+    const token = await this.jwt.signEmailVerificationToken(user.id);
+    const verificationUrl = `${this.config.APP_URL}/auth/verify-email?token=${token}`;
+    const template = verifyEmailTemplate({
+      name: user.name,
+      verificationUrl,
+    });
+
+    const result = await this.email.send({
+      to: user.email,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      tags: { type: "email_verification" },
+    });
+
+    this.logger?.info({ userId: user.id }, "Email verified");
+    return result;
   }
 
   async refreshTokens(input: RefreshInput) {
@@ -451,14 +478,17 @@ export class AuthService extends LoggedService {
     //   this.rbac.resolvePermissions(user.id),
     //   this.rbac.getPrimaryRole(user.id),
     // ]);
-
+    const organizationId = await this.orgService.getPersonalOrgId(user.id);
+    const organizationRole = await this.orgService.getPrimaryRoleSlug(user.id);
     const tokens = await this.jwt.createTokenPair({
       sub: user.id,
       sessionId: device.id,
       deviceId: device.id,
       userTokenVersion: user.tokenVersion,
       deviceTokenVersion: device.tokenVersion,
-      role: "owner",
+      organizationId,
+      organizationRole,
+      role: user.platformRole,
     });
 
     return {
@@ -680,13 +710,18 @@ export class AuthService extends LoggedService {
       });
     }
 
+    const organizationId = await this.orgService.getPersonalOrgId(user.id);
+
+    const organizationRole = await this.orgService.getPrimaryRoleSlug(user.id);
     const tokens = await this.jwt.createTokenPair({
       sub: user.id,
       sessionId: device.id,
       deviceId: device.id,
       userTokenVersion: user.tokenVersion,
       deviceTokenVersion: device.tokenVersion,
-      role: "owner",
+      organizationId,
+      organizationRole,
+      role: user.platformRole,
     });
 
     const loginInput: LoginAttemptInput = {
@@ -718,11 +753,7 @@ export class AuthService extends LoggedService {
 
       await this.securityEvents.record(event);
     }
-
     await this.userService.updateLastSeen(user.id);
-
-    // const permissions = await txRbac.resolvePermissions(user.id);
-
     const authUser: User = {
       id: user.id,
       name: user.name,
@@ -730,11 +761,16 @@ export class AuthService extends LoggedService {
       image: user.image ?? "",
       status: user.status,
       emailVerified: user.emailVerified,
+      role: user.platformRole,
     };
 
     return {
       user: authUser,
       tokens: tokens,
+      organization: {
+        id: organizationId,
+        role: organizationRole,
+      },
       session: {
         sessionId: device.id,
         deviceId: device.id,

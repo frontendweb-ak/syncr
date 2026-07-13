@@ -89,6 +89,11 @@ export const envSchema = z.object({
   // Better Auth
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.url(),
+
+  // github
+  GITHUB_APP_ID: z.string(),
+  GITHUB_APP_WEBHOOK_SECRET: z.string(),
+  GITHUB_APP_PRIVATE_KEY: z.string(),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

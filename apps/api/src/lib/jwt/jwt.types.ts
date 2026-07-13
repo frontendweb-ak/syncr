@@ -1,5 +1,41 @@
 export type JwtTokenType = "access" | "refresh";
 
+export type TokenType =
+  | "access"
+  | "refresh"
+  | "email_verification"
+  | "password_reset"
+  | "magic_link"
+  | "mfa_challenge";
+export interface EmailVerificationPayload {
+  sub: string;
+  type: "email_verification";
+}
+
+export interface PasswordResetPayload {
+  sub: string;
+  type: "password_reset";
+}
+
+export interface MagicLinkPayload {
+  sub: string;
+  type: "magic_link";
+}
+
+export interface MfaChallengePayload {
+  sub: string;
+  sessionId: string;
+  deviceId: string;
+  type: "mfa_challenge";
+}
+export type AnyTokenPayload =
+  | AccessTokenPayload
+  | RefreshTokenPayload
+  | EmailVerificationPayload
+  | PasswordResetPayload
+  | MagicLinkPayload
+  | MfaChallengePayload;
+
 export interface BaseJwtPayload {
   sub: string;
 
@@ -43,11 +79,23 @@ export interface AccessTokenPayload extends BaseJwtPayload {
    */
   role: string;
 
-  organizationId: string; // <-- ADD
+  organizationId: string;
+  organizationRole: string;
 
   impersonatorId?: string;
 }
 
 export interface RefreshTokenPayload extends BaseJwtPayload {
   type: "refresh";
+}
+
+export interface JwtTokenPair {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: "Bearer";
+
+  expiresIn: number;
+
+  accessTokenExpiresAt: Date;
+  refreshTokenExpiresAt: Date;
 }

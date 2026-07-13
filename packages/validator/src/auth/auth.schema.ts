@@ -153,6 +153,12 @@ export type GoogleLoginInput = z.infer<
 >;
 
 
+export const resendVerificationSchema = z.object({
+  email: z.email("Invalid email address").trim().toLowerCase(),
+});
+
+export type ResendVerificationInput = z.infer<typeof resendVerificationSchema>;
+
 export const MfaEnableConfirmSchema = z.object({
   code: OtpCode,
 });

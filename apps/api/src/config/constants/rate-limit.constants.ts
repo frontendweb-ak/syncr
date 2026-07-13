@@ -22,8 +22,20 @@ export const RATE_LIMIT = {
   MFA_ENABLE_CONFIRM: { REQUESTS: 10, WINDOW_SECONDS: 300 },
   MFA_DISABLE: { REQUESTS: 5, WINDOW_SECONDS: 300 },
   API_KEY_CREATE: { REQUESTS: 5, WINDOW_SECONDS: 300 },
-  ORG_INVITE_RESEND: {},
-  ORG_INVITE_CREATE: {},
+  ORG_INVITE_CREATE: {
+    REQUESTS: 20,
+    WINDOW_SECONDS: 3600,
+  },
+
+  ORG_INVITE_RESEND: {
+    REQUESTS: 5,
+    WINDOW_SECONDS: 3600,
+  },
+
+  RESEND_VERIFICATION_EMAIL: {
+    REQUESTS: 5,
+    WINDOW_SECONDS: 3600,
+  },
   /* -------------------------------------------------------------------------- */
   /* OAuth / SSO                                                                 */
   /* -------------------------------------------------------------------------- */

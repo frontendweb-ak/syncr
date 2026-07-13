@@ -7,53 +7,16 @@ import {
 } from "jose";
 import { type AppConfig, JWT } from "../../config";
 import { Errors } from "../../errors";
-import type { AccessTokenPayload, RefreshTokenPayload } from "./jwt.types";
+import type {
+  AccessTokenPayload,
+  AnyTokenPayload,
+  EmailVerificationPayload,
+  MfaChallengePayload,
+  RefreshTokenPayload,
+} from "./jwt.types";
 
 const ALGORITHM = JWT.ALGORITHM;
-export type TokenType =
-  | "access"
-  | "refresh"
-  | "email_verification"
-  | "password_reset"
-  | "magic_link"
-  | "mfa_challenge";
-export interface EmailVerificationPayload {
-  sub: string;
-  type: "email_verification";
-}
 
-export interface PasswordResetPayload {
-  sub: string;
-  type: "password_reset";
-}
-
-export interface MagicLinkPayload {
-  sub: string;
-  type: "magic_link";
-}
-
-export interface MfaChallengePayload {
-  sub: string;
-  sessionId: string;
-  deviceId: string;
-  type: "mfa_challenge";
-}
-type AnyTokenPayload =
-  | AccessTokenPayload
-  | RefreshTokenPayload
-  | EmailVerificationPayload
-  | PasswordResetPayload
-  | MagicLinkPayload
-  | MfaChallengePayload;
-
- export interface JwtTokenPair {
-   accessToken: string;
-   refreshToken: string;
-   tokenType: "Bearer";
-   expiresIn: number;
-   accessTokenExpiresAt: Date;
-   refreshTokenExpiresAt: Date;
- }
 export class JwtService {
   private readonly accessSecret: Uint8Array;
   private readonly refreshSecret: Uint8Array;
@@ -80,6 +43,7 @@ export class JwtService {
       ...payload,
       type: "access",
     });
+    console.log("accessToken", accessToken);
 
     const refreshToken = await this.signRefreshToken({
       sub: payload.sub,
@@ -110,6 +74,8 @@ export class JwtService {
       userTokenVersion: payload.userTokenVersion,
       deviceTokenVersion: payload.deviceTokenVersion,
       role: payload.role,
+      organizationId: payload.organizationId,
+      organizationRole: payload.organizationRole,
       type: payload.type,
       ...(payload.impersonatorId
         ? { impersonatorId: payload.impersonatorId }
@@ -168,7 +134,8 @@ export class JwtService {
         deviceId: payload.deviceId as string,
         userTokenVersion: payload.userTokenVersion as number,
         deviceTokenVersion: payload.deviceTokenVersion as number,
-        organizationId: payload.organizationId,
+        organizationId: payload.organizationId as string,
+        organizationRole: payload.organizationRole as string,
         role: payload.role as string,
         ...(payload.impersonatorId
           ? { impersonatorId: payload.impersonatorId as string }

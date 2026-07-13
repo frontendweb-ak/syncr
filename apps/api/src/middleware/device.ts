@@ -1,7 +1,6 @@
 // middleware/device.ts
 
 import { getConnInfo } from "@hono/node-server/conninfo";
-import type { DeviceInput } from "@syncr/types";
 import { createMiddleware } from "hono/factory";
 import type { AppContext } from "../types/env";
 import { parseDeviceType } from "../utils/device-type";
@@ -16,16 +15,16 @@ export const deviceMiddleware = createMiddleware<AppContext>(
 
     const deviceId = c.req.header("X-Device-Id");
 
-    const device: DeviceInput = {
+    const device = {
       fingerprint: deviceId ?? crypto.randomUUID(),
       deviceType: parseDeviceType(c.req.header("x-device-type")),
       platform: c.req.header("x-platform") ?? "WEB",
-      osVersion: c.req.header("x-platform-version")!,
-      deviceName: c.req.header("x-device-name")!,
-      appVersion: c.req.header("x-app-version")!,
-      pushToken: c.req.header("x-push-token")!,
-      userAgent: c.req.header("user-agent")!,
-      ipAddress: ip!,
+      osVersion: c.req.header("x-platform-version"),
+      deviceName: c.req.header("x-device-name"),
+      appVersion: c.req.header("x-app-version"),
+      pushToken: c.req.header("x-push-token"),
+      userAgent: c.req.header("user-agent"),
+      ipAddress: ip,
     };
 
     c.set("device", device);

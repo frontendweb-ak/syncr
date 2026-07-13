@@ -154,6 +154,7 @@ export class OrganizationService extends LoggedService {
     if (!org) throw Errors.organization.notFound();
     return org.id;
   }
+
   // Shared by both creation paths: membership + OWNER role + default
   // workspace + workspace access. Private because "create an org
   // without an owner membership" should never be a thing a caller can

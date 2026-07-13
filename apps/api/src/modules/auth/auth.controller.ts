@@ -20,27 +20,24 @@ export const authController = {
     const body = await c.req.json();
     console.log("HI", body);
     const service = makeAuthService(c);
-   
-      const result = await service.registerEmail({
-        name: body.name,
-        email: body.email,
-        password: body.password,
-      });
-      return created(c, result);
-    
+
+    const result = await service.registerEmail({
+      name: body.name,
+      email: body.email,
+      password: body.password,
+    });
+    return created(c, result);
   },
 
   // login
   async loginEmail(c: AppCtx) {
     const body = await c.req.json();
     const service = makeAuthService(c);
-
     const result = await service.loginEmail({
       email: body.email,
       password: body.password,
       device: c.get("device"),
     });
-
     return ok(c, result);
   },
 
@@ -56,13 +53,22 @@ export const authController = {
   },
 
   async verifyEmail(c: AppCtx) {
-    console.log("C", c.req.query("token"));
     const token = c.req.query("token");
     const service = makeAuthService(c);
     await service.verifyEmail(token);
     return ok(c, {
       success: true,
       message: "Email verified successfully.",
+    });
+  },
+
+  async resendVerification(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeAuthService(c);
+    await service.resendVerification(body.email);
+    return ok(c, {
+      success: true,
+      message: "Email sent successfully.",
     });
   },
 

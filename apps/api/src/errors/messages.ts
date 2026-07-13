@@ -256,4 +256,30 @@ export const ErrorMessage: Record<ErrorCode, string> = {
   DB_FOREIGN_KEY: "Foreign key constraint failed.",
   DB_CONNECTION: "Database connection failed.",
   DB_TIMEOUT: "Database operation timed out.",
+
+  GITHUB_APP_NOT_CONFIGURED: "GitHub App is not configured.",
+
+  GITHUB_APP_JWT_SIGN_FAILED:
+    "Failed to create GitHub App authentication token.",
+
+  GITHUB_INSTALLATION_NOT_FOUND: "GitHub installation not found.",
+
+  GITHUB_INSTALLATION_SUSPENDED: "GitHub installation has been suspended.",
+
+  GITHUB_INSTALLATION_UNINSTALLED: "GitHub installation has been uninstalled.",
+
+  GITHUB_TOKEN_MINT_FAILED: "Failed to create GitHub installation token.",
+
+  GITHUB_WEBHOOK_INVALID_SIGNATURE: "GitHub webhook signature is invalid.",
+
+  GITHUB_WEBHOOK_DELIVERY_FAILED: "Failed to process GitHub webhook delivery.",
+
+  GITHUB_API_RATE_LIMITED: "GitHub API rate limit exceeded.",
+  GITHUB_API_ERROR: "GitHub API request failed.",
+  GITHUB_REPOSITORY_NOT_FOUND: "GitHub repository not found.",
+  GITHUB_PERMISSION_DENIED: "GitHub permission denied.",
+  GITHUB_INSUFFICIENT_PERMISSIONS:
+    "GitHub App does not have the required permissions.",
+  GITHUB_INSTALLATION_ACCESS_EXPIRED:
+    "GitHub installation access token has expired.",
 };

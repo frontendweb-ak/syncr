@@ -12,6 +12,7 @@ import {
   MfaVerifySchema,
   RefreshTokenSchema,
   RegisterSchema,
+  resendVerificationSchema,
   ResetPasswordSchema,
   SetPasswordSchema,
   VerifyEmailQuerySchema,
@@ -46,6 +47,13 @@ auth.get(
   rateLimitMiddleware("VERIFY_EMAIL"),
   validateQuery(VerifyEmailQuerySchema),
   authController.verifyEmail,
+);
+
+auth.post(
+  "/resend-verification",
+  rateLimitMiddleware("RESEND_VERIFICATION_EMAIL"),
+  validate(resendVerificationSchema),
+  authController.resendVerification,
 );
 
 auth.post(
