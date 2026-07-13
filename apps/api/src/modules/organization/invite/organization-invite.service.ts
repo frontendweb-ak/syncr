@@ -1,21 +1,27 @@
 // src/modules/organization/organization-invite.service.ts
 
-import { randomBytes, createHash } from "node:crypto";
 import type { EmailService } from "@syncr/notifications";
+import { SYSTEM_ROLE_SLUGS } from "@syncr/types";
+import { createHash, randomBytes } from "node:crypto";
 import type { Logger } from "pino";
-import type { AppConfig } from "../../config";
-import type { RepoContext } from "../../core/base/base.repo";
-import { LoggedService } from "../../core/base/logger.service";
-import { Errors } from "../../errors";
-import type { JwtService } from "../../lib";
-import { MemberRoleRepo } from "../rbac/member-role.repo";
-import { RoleRepo } from "../rbac/role.repo";
-import { SYSTEM_ROLE_SLUGS } from "../rbac/role-slugs";
-import { OrganizationMemberRepo } from "./organization-member.repo";
-import { OrganizationInviteRepo, type OrganizationInvite } from "./organization-invite.repo";
-import { OrganizationRepo } from "./organization.repo";
-import { OrganizationService } from "./organization.service";
-import { WorkspaceRepo } from "./workspace.repo";
+import type { AppConfig } from "../../../config";
+import type { RepoContext } from "../../../core/base/base.repo";
+import { LoggedService } from "../../../core/base/logger.service";
+import { Errors } from "../../../errors";
+import type { JwtService } from "../../../lib";
+import { RoleRepo } from "../../role/role.repo";
+import { MemberRoleRepo } from "../member/member-role.repo";
+import { OrganizationMemberRepo } from "../member/organization-member.repo";
+import { OrganizationRepo } from "../organization.repo";
+import { OrganizationService } from "../organization.service";
+import { WorkspaceRepo } from "../workspace.repo";
+import {
+  type OrganizationInvite,
+  OrganizationInviteRepo,
+} from "./organization-invite.repo";
+
+
+
 
 const INVITE_EXPIRY_DAYS = 7;
 

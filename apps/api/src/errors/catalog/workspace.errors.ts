@@ -11,6 +11,8 @@ import { NotFoundException } from "../not-found.error";
 
 export const workspaceErrors = {
   organization: {
+    roleNotFound: () =>
+      new NotFoundException("Role not found", ErrorCode.ROLE_NOT_FOUND),
     cannotRemoveOwner: () =>
       new ConflictException(
         "Transfer ownership before removing this member",
@@ -88,11 +90,34 @@ export const workspaceErrors = {
         "Organization workspace created failed",
       ),
 
-    inviteCreateFailed: () =>
-      new HttpException(
-        500,
-        ErrorCode.ORGANIZATION_INVITE_CREATE_FAILED,
-        "Organization invite creation failed",
+    inviteInvalid: () =>
+      new BadRequestException(
+        "Invalid or unknown invite token",
+        ErrorCode.ORG_INVITE_INVALID,
+      ),
+
+    inviteNotPending: () =>
+      new ConflictException(
+        "This invite is no longer pending",
+        ErrorCode.ORG_INVITE_NOT_PENDING,
+      ),
+
+    inviteRevoked: () =>
+      new ConflictException(
+        "This invite has been revoked",
+        ErrorCode.ORG_INVITE_REVOKED,
+      ),
+
+    inviteAlreadyExists: () =>
+      new ConflictException(
+        "A pending invite already exists for this email",
+        ErrorCode.ORG_INVITE_ALREADY_EXISTS,
+      ),
+
+    alreadyMember: () =>
+      new ConflictException(
+        "User is already a member of this organization",
+        ErrorCode.ORG_MEMBER_ALREADY_EXISTS,
       ),
   },
 

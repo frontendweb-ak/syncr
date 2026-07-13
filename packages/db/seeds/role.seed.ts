@@ -19,8 +19,8 @@ export const SYSTEM_ROLES = [
     priority: 800,
   },
   {
-    name: "Developer",
-    slug: "developer",
+    name: "Member",
+    slug: "member",
     description: "Default member role",
     isSystem: true,
     isDefault: true,

@@ -33,13 +33,10 @@ export const loginFailureReasonEnum = pgEnum(
   "login_failure_reason",
   LOGIN_FAILURE_REASON,
 );
-
 export const securityEventTypeEnum = pgEnum(
   "security_event_type",
   SECURITY_EVENT_TYPE,
 );
-
-
 export const impersonationStatusEnum = pgEnum(
   "impersonation_status",
   IMPERSONATION_STATUS,

@@ -24,6 +24,7 @@ import type { RepoContext } from "../../core/base/base.repo";
 import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
 import type { JwtService } from "../../lib";
+import { OrganizationService } from "../organization/organization.service";
 import { UserService } from "../user";
 import type { User as DbUser } from "../user/user.repo";
 import { CredentialService } from "./credential/credential.service";
@@ -55,6 +56,8 @@ export class AuthService extends LoggedService {
   private readonly mfaService: MfaService;
   private readonly passwordReset: PasswordResetService;
 
+  private readonly orgService: OrganizationService;
+
   constructor(
     db: RepoContext,
     jwt: JwtService,
@@ -73,10 +76,12 @@ export class AuthService extends LoggedService {
     this.loginHistory = new LoginHistoryService(db);
     this.passwordService = new PasswordService();
     this.providerService = new AuthProviderService(db, jwt, config, logger);
+    this.orgService = new OrganizationService(db, jwt, config, logger);
     // google
-
     this.googleService = new GoogleOAuthService(config);
+    // mfa
     this.mfaService = new MfaService(db, jwt, config, logger);
+    // password
     this.passwordReset = new PasswordResetService(db, jwt, config, logger);
   }
 
@@ -84,45 +89,61 @@ export class AuthService extends LoggedService {
   async registerEmail(input: SignUpInput): Promise<User> {
     assertPasswordStrength(input.password);
 
+    // 0. check existing user
     const email = input.email.trim().toLowerCase();
     const existing = await this.userService.getByEmail(email);
     if (existing) throw Errors.user.emailAlreadyExists();
 
-    // 1. create user
-    const user = await this.userService.createUser({ name: input.name, email });
+    //
 
-    // 2. create credentials
-    const passwordHash = await this.passwordService.hash(input.password);
-    await this.credentialService.create({ userId: user.id, passwordHash });
+    return await this.withTransaction(async (tx) => {
+      // 1. create user
+      const user = await this.userService.createUser({
+        name: input.name,
+        email,
+      });
 
-    // 3. create provider
-    await this.providerService.linkProvider({
-      userId: user.id,
-      provider: "PASSWORD",
-      providerId: email,
+      // 2. personal organization
+      await this.orgService.createPersonalOrg({
+        userId: user.id,
+        userName: input.name,
+      });
+
+      // 3. create credentials
+      const passwordHash = await this.passwordService.hash(input.password);
+      await this.credentialService.create({ userId: user.id, passwordHash });
+
+      // 4. create provider
+      await this.providerService.linkProvider({
+        userId: user.id,
+        provider: "PASSWORD",
+        providerId: email,
+      });
+
+      const token = await this.jwt.signEmailVerificationToken(user.id);
+      const verificationUrl = `${this.config.APP_URL}/auth/verify-email?token=${token}`;
+      const template = verifyEmailTemplate({
+        name: user.name,
+        verificationUrl,
+      });
+      const result = await this.email.send({
+        to: user.email,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        tags: { type: "email_verification" },
+      });
+
+      this.logger?.debug({ result }, "Email sent");
+      return {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        status: user.status,
+        emailVerified: user.emailVerified,
+        image: user.image ?? "",
+      };
     });
-
-    const token = await this.jwt.signEmailVerificationToken(user.id);
-    const verificationUrl = `${this.config.APP_URL}/auth/verify-email?token=${token}`;
-    const template = verifyEmailTemplate({ name: user.name, verificationUrl });
-    const result = await this.email.send({
-      to: user.email,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-      tags: { type: "email_verification" },
-    });
-
-    this.logger?.debug({ result }, "Email sent");
-
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      status: user.status,
-      emailVerified: user.emailVerified,
-      image: user.image ?? "",
-    };
   }
 
   async loginWithGoogle(input: GoogleAuthInput) {

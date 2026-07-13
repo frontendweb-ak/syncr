@@ -33,33 +33,41 @@ export class OrganizationMemberRepo extends BaseRepo {
           eq(organizationMembers.organizationId, organizationId),
           eq(organizationMembers.userId, userId),
         ),
-      );
+      )
+      .limit(1);
 
     return this.first(rows);
   }
 
+  /**
+   * The core authorization check every org-scoped route ultimately relies
+   * on: is this user an ACTIVE member of this org? Called from the new
+   * orgMiddleware below, not just from organization.service.ts directly.
+   */
+  async isActiveMember(organizationId: string, userId: string): Promise<boolean> {
+    const member = await this.findByOrgAndUser(organizationId, userId);
+    return member?.status === "ACTIVE";
+  }
+ 
   async findById(id: string) {
     const rows = await this.db
       .select()
       .from(organizationMembers)
       .where(eq(organizationMembers.id, id));
-
     return this.first(rows);
   }
 
   async listForOrg(organizationId: string) {
     return this.db
-      .select({
-        id: organizationMembers.id,
-        userId: organizationMembers.userId,
-        status: organizationMembers.status,
-        joinedAt: organizationMembers.joinedAt,
-        userName: users.name,
-        userEmail: users.email,
-      })
+      .select()
       .from(organizationMembers)
       .innerJoin(users, eq(organizationMembers.userId, users.id))
-      .where(eq(organizationMembers.organizationId, organizationId))
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.status, "ACTIVE"),
+        ),
+      )
       .orderBy(organizationMembers.joinedAt);
   }
 
@@ -68,10 +76,7 @@ export class OrganizationMemberRepo extends BaseRepo {
   // this for, never the bare membership row.
   async listActiveOrgsForUser(userId: string) {
     return this.db
-      .select({
-        membershipId: organizationMembers.id,
-        organization: organizations,
-      })
+      .select()
       .from(organizationMembers)
       .innerJoin(
         organizations,

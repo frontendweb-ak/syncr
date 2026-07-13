@@ -20,11 +20,28 @@ export class OrganizationRepo extends BaseRepo {
     return this.firstOrThrow(rows, Errors.organization.createFailed());
   }
 
-  async findById(id: string) {
+  async findById(orgId: string) {
     const rows = await this.db
       .select()
       .from(organizations)
-      .where(and(eq(organizations.id, id), isNull(organizations.deletedAt)));
+      .where(and(eq(organizations.id, orgId), isNull(organizations.deletedAt)));
+    return this.first(rows);
+  }
+
+  // Relies on organizations_one_personal_per_owner_uidx (partial unique
+  // index, WHERE isPersonal = true) to guarantee at most one row can
+  // ever match — see organizations.ts schema notes.
+  async findPersonalOrgForUser(userId: string) {
+    const rows = await this.db
+      .select()
+      .from(organizations)
+      .where(
+        and(
+          eq(organizations.ownerUserId, userId),
+          eq(organizations.isPersonal, true),
+        ),
+      )
+      .limit(1);
 
     return this.first(rows);
   }
@@ -43,30 +60,12 @@ export class OrganizationRepo extends BaseRepo {
     return this.first(rows);
   }
 
-  // Relies on organizations_one_personal_per_owner_uidx (partial unique
-  // index, WHERE isPersonal = true) to guarantee at most one row can
-  // ever match — see organizations.ts schema notes.
-  async findPersonalByOwner(ownerUserId: string) {
-    const rows = await this.db
-      .select()
-      .from(organizations)
-      .where(
-        and(
-          eq(organizations.ownerUserId, ownerUserId),
-          eq(organizations.isPersonal, true),
-        ),
-      );
-
-    return this.first(rows);
-  }
-
   async existsBySlug(slug: string): Promise<boolean> {
     const rows = await this.db
       .select({ id: organizations.id })
       .from(organizations)
       .where(eq(organizations.slug, slug.toLowerCase()))
       .limit(1);
-
     return rows.length > 0;
   }
 

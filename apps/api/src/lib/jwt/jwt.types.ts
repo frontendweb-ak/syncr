@@ -43,6 +43,8 @@ export interface AccessTokenPayload extends BaseJwtPayload {
    */
   role: string;
 
+  organizationId: string; // <-- ADD
+
   impersonatorId?: string;
 }
 

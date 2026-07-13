@@ -167,6 +167,7 @@ export class JwtService {
         deviceId: payload.deviceId as string,
         userTokenVersion: payload.userTokenVersion as number,
         deviceTokenVersion: payload.deviceTokenVersion as number,
+        organizationId: payload.organizationId,
         role: payload.role as string,
         ...(payload.impersonatorId
           ? { impersonatorId: payload.impersonatorId as string }

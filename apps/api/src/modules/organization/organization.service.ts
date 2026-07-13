@@ -73,10 +73,13 @@ export class OrganizationService extends LoggedService {
   // a caller bug, not something this method guards against, because
   // BaseService.withTransaction already throws clearly if misused (see
   // core/base/base.service.ts).
-  async createPersonalOrganization(input: {
+  async createPersonalOrg(input: {
     userId: string;
     userName: string;
   }): Promise<Organization> {
+    const existing = await this.orgRepo.findPersonalOrgForUser(input.userId);
+    if (existing) return existing; // idempotent — safe to call defensively
+
     const slug = await this.uniqueSlug(`${input.userName}-personal`);
 
     const org = await this.orgRepo.create({
@@ -84,6 +87,7 @@ export class OrganizationService extends LoggedService {
       slug,
       name: `${input.userName}'s Workspace`,
       isPersonal: true,
+      status: "ACTIVE",
       plan: "FREE",
     });
 
@@ -120,6 +124,7 @@ export class OrganizationService extends LoggedService {
         slug,
         name: input.name,
         isPersonal: false,
+        status: "ACTIVE",
         plan: "FREE",
       });
 
@@ -128,7 +133,27 @@ export class OrganizationService extends LoggedService {
       return org;
     });
   }
+  async update(
+    organizationId: string,
+    requestingUserId: string,
+    data: { name?: string; displayName?: string; description?: string },
+  ): Promise<Organization> {
+    const isMember = await this.memberRepo.isActiveMember(
+      organizationId,
+      requestingUserId,
+    );
+    if (!isMember) throw Errors.organization.notFound();
+    // NOTE: any active member can update org details in this MVP cut —
+    // role-gating this to ADMIN/OWNER only is an RBAC wiring task, not
+    // something this service silently invents a policy for.
+    return this.orgRepo.update(organizationId, data);
+  }
 
+  async getPersonalOrgId(userId: string): Promise<string> {
+    const org = await this.orgRepo.findPersonalOrgForUser(userId);
+    if (!org) throw Errors.organization.notFound();
+    return org.id;
+  }
   // Shared by both creation paths: membership + OWNER role + default
   // workspace + workspace access. Private because "create an org
   // without an owner membership" should never be a thing a caller can
@@ -204,7 +229,7 @@ export class OrganizationService extends LoggedService {
     if (!first) return SYSTEM_ROLE_SLUGS.MEMBER; // no org yet — shouldn't happen post-registration
 
     const slugs = await this.memberRoleRepo.listSlugsForMember(
-      first.membershipId,
+      first.organization_members.id,
     );
     return slugs[0] ?? SYSTEM_ROLE_SLUGS.MEMBER;
   }

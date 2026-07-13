@@ -32,19 +32,21 @@ export const organizationController = {
   async listMine(c: AppCtx) {
     const auth = c.get("auth");
     const service = makeOrganizationService(c);
-    const memberships = await service.listForUser(auth.sub);
-
-    return ok(c, {
-      organizations: memberships.map((m) => ({
-        id: m.organization.id,
-        slug: m.organization.slug,
-        name: m.organization.name,
-        isPersonal: m.organization.isPersonal,
-        plan: m.organization.plan,
-      })),
-    });
+    const result = await service.listForUser(auth.sub);
+    return ok(c, result);
   },
-
+  async update(c: AppCtx) {
+    const auth = c.get("auth");
+    const id = requireParam(c, "id");
+    const body = await c.req.json();
+    const service = makeOrganizationService(c);
+    const result = await service.update(id, auth.sub, {
+      name: body.name,
+      displayName: body.displayName,
+      description: body.description,
+    });
+    return ok(c, result);
+  },
   async getBySlug(c: AppCtx) {
     const slug = requireParam(c, "slug");
     const service = makeOrganizationService(c);
