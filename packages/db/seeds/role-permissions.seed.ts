@@ -111,29 +111,44 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
 };
 
+function getPermissionName(resource: string, action: string) {
+  return `syncr:${resource}:${action}`;
+}
+
 export async function seedRolePermissions(db: Db) {
   const [allRoles, allPermissions] = await Promise.all([
     db.query.roles.findMany(),
     db.query.permissions.findMany(),
   ]);
 
-  const roleMap = new Map(allRoles.map((r) => [r.slug, r]));
-  const permissionMap = new Map(allPermissions.map((p) => [p.name, p]));
+  const roleMap = new Map(
+    allRoles.map((role) => [role.slug.toLowerCase(), role]),
+  );
+
+  const permissionMap = new Map(
+    allPermissions.map((permission) => [
+      getPermissionName(permission.resource, permission.action),
+      permission,
+    ]),
+  );
 
   const values: (typeof rolePermissions.$inferInsert)[] = [];
 
   for (const [roleSlug, permissionNames] of Object.entries(ROLE_PERMISSIONS)) {
-    const role = roleMap.get(roleSlug);
+    const role = roleMap.get(roleSlug.toLowerCase());
 
     if (!role) continue;
 
-    const permissions = permissionNames.includes("*")
+    const resolvedPermissions = permissionNames.includes("*")
       ? allPermissions
       : permissionNames
-          .map((name) => permissionMap.get(name))
-          .filter((p): p is (typeof allPermissions)[number] => !!p);
+          .map((permissionName) => permissionMap.get(permissionName))
+          .filter(
+            (permission): permission is (typeof allPermissions)[number] =>
+              permission !== undefined,
+          );
 
-    for (const permission of permissions) {
+    for (const permission of resolvedPermissions) {
       values.push({
         roleId: role.id,
         permissionId: permission.id,
@@ -141,5 +156,7 @@ export async function seedRolePermissions(db: Db) {
     }
   }
 
-  await db.insert(rolePermissions).values(values).onConflictDoNothing();
+  if (values.length > 0) {
+    await db.insert(rolePermissions).values(values).onConflictDoNothing();
+  }
 }

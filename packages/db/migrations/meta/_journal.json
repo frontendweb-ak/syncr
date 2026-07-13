@@ -5,43 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1783663628502,
-      "tag": "0000_famous_the_santerians",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1783771951402,
-      "tag": "0001_quiet_the_initiative",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1783773241079,
-      "tag": "0002_sharp_morlun",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1783773574335,
-      "tag": "0003_married_skullbuster",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1783777892539,
-      "tag": "0004_pretty_marvel_boy",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1783836334544,
-      "tag": "0005_talented_luckman",
+      "when": 1783913749367,
+      "tag": "0000_cute_true_believers",
       "breakpoints": true
     }
   ]

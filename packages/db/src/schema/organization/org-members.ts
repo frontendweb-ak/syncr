@@ -26,10 +26,7 @@ export const organizationMembers = pgTable(
       }),
     userId: uuid("user_id")
       .notNull()
-      .references(() => users.id, {
-        onDelete: "cascade",
-        onUpdate: "cascade",
-      }),
+      .references(() => users.id, { onDelete: "cascade", onUpdate: "cascade" }),
     invitedByUserId: uuid("invited_by_user_id").references(() => users.id, {
       onDelete: "set null",
       onUpdate: "cascade",
@@ -42,7 +39,6 @@ export const organizationMembers = pgTable(
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
       .notNull(),
-
     ...timestamps,
   },
   (table) => [

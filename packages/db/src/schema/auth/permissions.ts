@@ -14,9 +14,6 @@ export const permissions = pgTable(
   "permissions",
   {
     id: uuid("permission_id").defaultRandom().primaryKey(),
-    name: text("name").generatedAlwaysAs(
-      (): ReturnType<typeof sql> => sql`'syncr:' || resource || ':' || action`,
-    ),
     resource: text("resource").notNull(),
     action: text("action").notNull(),
     description: text("description"),

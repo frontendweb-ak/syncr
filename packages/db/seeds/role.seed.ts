@@ -8,7 +8,7 @@ export const SYSTEM_ROLES = [
     description: "Organization owner",
     isSystem: true,
     isDefault: false,
-    priority: "1000",
+    priority: 1000,
   },
   {
     name: "Admin",
@@ -16,7 +16,7 @@ export const SYSTEM_ROLES = [
     description: "Organization administrator",
     isSystem: true,
     isDefault: false,
-    priority: "800",
+    priority: 800,
   },
   {
     name: "Developer",
@@ -24,7 +24,7 @@ export const SYSTEM_ROLES = [
     description: "Default member role",
     isSystem: true,
     isDefault: true,
-    priority: "500",
+    priority: 500,
   },
   {
     name: "Viewer",
@@ -32,11 +32,9 @@ export const SYSTEM_ROLES = [
     description: "Read only access",
     isSystem: true,
     isDefault: false,
-    priority: "100",
+    priority: 100,
   },
 ];
 export async function seedRoles(db: Db) {
-  await db.insert(roles).values(SYSTEM_ROLES).onConflictDoNothing({
-    target: roles.slug,
-  });
+  await db.insert(roles).values(SYSTEM_ROLES).onConflictDoNothing();
 }

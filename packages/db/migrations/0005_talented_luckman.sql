@@ -1,1 +1,0 @@
-ALTER TABLE "permissions" ADD COLUMN "name" text NOT NULL;

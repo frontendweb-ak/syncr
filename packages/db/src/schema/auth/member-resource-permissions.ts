@@ -21,20 +21,17 @@ export const memberResourcePermissions = pgTable(
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-
     permissionId: uuid("permission_id")
       .notNull()
       .references(() => permissions.id, {
         onDelete: "cascade",
         onUpdate: "cascade",
       }),
-
     resourceType: text("resource_type").notNull(),
     resourceId: uuid("resource_id").notNull(),
     allow: boolean("allow").default(true).notNull(),
     assignedByUserId: uuid("assigned_by_user_id"),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
-
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .default(sql`'{}'::jsonb`)
