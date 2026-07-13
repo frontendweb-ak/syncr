@@ -10,3 +10,4 @@ coverage
 !.env.example
 
 .DS_Store
+syncr-api.2026-07-13.private-key (1).pem
