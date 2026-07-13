@@ -339,4 +339,6 @@ export const ErrorMessage: Record<ErrorCode, string> = {
 
   COMPONENT_VERSION_DELETE_FAILED: "Failed to delete component version.",
   COMPONENT_SLUG_TAKEN: "",
+  GITHUB_INSTALL_STATE_INVALID:
+    "GitHub installation state is invalid or expired.",
 };

@@ -9,38 +9,8 @@
 // browser-driven flow does, via the signed `state` param.
 
 import { Hono } from "hono";
-import { SignJWT, jwtVerify } from "jose";
-import { Errors } from "../../../errors";
-import type { AppContext, AppCtx } from "../../../types/env";
-import { GithubAppService } from "../app/github-app.service";
-import { ProviderConnectionRepo } from "./provider-connection.repo";
-
-const STATE_TTL_SECONDS = 10 * 60; // install flow should complete well within 10 minutes
-
-// ─────────────────────────────────────────────────────────────
-// State token — proves "this callback corresponds to a connect
-// request WE issued for THIS org, started by THIS user" without
-// needing server-side session storage for the install flow.
-// ─────────────────────────────────────────────────────────────
-
-async function signInstallState(config: any, organizationId: string, userId: string) {
-  const secret = new TextEncoder().encode(config.JWT_SECRET); // reuse your existing JWT secret, or a dedicated one
-  return new SignJWT({ organizationId, userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${STATE_TTL_SECONDS}s`)
-    .sign(secret);
-}
-
-async function verifyInstallState(config: any, state: string) {
-  const secret = new TextEncoder().encode(config.JWT_SECRET);
-  try {
-    const { payload } = await jwtVerify(state, secret);
-    return payload as { organizationId: string; userId: string };
-  } catch {
-    throw Errors.github.installStateInvalid();
-  }
-}
+import { Errors } from "../../../../errors";
+import type { AppContext, AppCtx } from "../../../../types/env";
 
 // ─────────────────────────────────────────────────────────────
 // Routes
@@ -56,13 +26,14 @@ const install = new Hono<AppContext>();
 install.get("/connect", async (c: AppCtx) => {
   const auth = c.get("auth");
   const config = c.get("config");
+  const jwt = c.get("jwt");
   // ASSUMPTION: org context comes from a query param or the user's
   // active org — adjust to however your app resolves "current org"
   // elsewhere (you likely already have this pattern for other routes).
   const organizationId = c.req.query("organizationId");
   if (!organizationId) throw Errors.validation.missingField("organizationId");
 
-  const state = await signInstallState(config, organizationId, auth.sub);
+  const state = await jwt.signGithubInstallStateToken(organizationId, auth.sub);
   const url = `https://github.com/apps/${config.GITHUB_APP_SLUG}/installations/new?state=${encodeURIComponent(state)}`;
   return c.redirect(url);
 });
@@ -127,3 +98,4 @@ install.get("/callback", async (c: AppCtx) => {
 });
 
 export { install as githubInstallRoutes };
+

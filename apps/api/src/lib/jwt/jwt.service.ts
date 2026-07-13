@@ -11,6 +11,7 @@ import type {
   AccessTokenPayload,
   AnyTokenPayload,
   EmailVerificationPayload,
+  GithubInstallStatePayload,
   MfaChallengePayload,
   RefreshTokenPayload,
 } from "./jwt.types";
@@ -302,6 +303,52 @@ export class JwtService {
       };
     } catch (error) {
       this.handleJoseError(error);
+    }
+  }
+
+  // Github
+  async signGithubInstallStateToken(
+    userId: string,
+    organizationId: string,
+  ): Promise<string> {
+    return new SignJWT({
+      organizationId,
+      type: "github_install_state",
+    })
+      .setProtectedHeader({ alg: ALGORITHM, typ: JWT.TYPE })
+      .setSubject(userId)
+      .setIssuer(this.config.JWT_ISSUER)
+      .setAudience(this.config.JWT_AUDIENCE)
+      .setIssuedAt()
+      .setExpirationTime(JWT.EXPIRY_SECONDS.GITHUB_INSTALL_STATE)
+      .sign(this.accessSecret);
+  }
+
+  async verifyGithubInstallStateToken(
+    token: string,
+  ): Promise<GithubInstallStatePayload> {
+    try {
+      const { payload } = await jwtVerify(token, this.accessSecret, {
+        issuer: this.config.JWT_ISSUER,
+        audience: this.config.JWT_AUDIENCE,
+        algorithms: [ALGORITHM],
+      });
+
+      if (payload.type !== "github_install_state") {
+        throw Errors.github.installStateInvalid();
+      }
+
+      if (!payload.sub || !payload.organizationId) {
+        throw Errors.github.installStateInvalid();
+      }
+
+      return {
+        sub: payload.sub,
+        organizationId: payload.organizationId as string,
+        type: "github_install_state",
+      };
+    } catch {
+      throw Errors.github.installStateInvalid();
     }
   }
 }

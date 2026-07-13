@@ -8,7 +8,12 @@ export const githubErrors = {
         "GITHUB_APP_NOT_CONFIGURED",
         "GitHub App is not configured.",
       ),
-
+    installStateInvalid: () =>
+      new HttpException(
+        401,
+        "GITHUB_INSTALL_STATE_INVALID",
+        "GitHub installation state is invalid or expired.",
+      ),
     jwtSignFailed: () =>
       new HttpException(
         500,

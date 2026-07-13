@@ -56,6 +56,7 @@ export const JWT = {
     PASSWORD_RESET: 30 * 60,
     MAGIC_LINK: 15 * 60,
     MFA_CHALLENGE: 5 * 60,
+    GITHUB_INSTALL_STATE: 10 * 60,
   },
   EXPIRY: {
     ACCESS: "15m",

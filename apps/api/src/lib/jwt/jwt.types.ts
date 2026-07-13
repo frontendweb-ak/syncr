@@ -6,7 +6,14 @@ export type TokenType =
   | "email_verification"
   | "password_reset"
   | "magic_link"
-  | "mfa_challenge";
+  | "mfa_challenge"
+  | "github_install_state";
+
+export interface GithubInstallStatePayload {
+  sub: string; // userId
+  organizationId: string;
+  type: "github_install_state";
+}
 export interface EmailVerificationPayload {
   sub: string;
   type: "email_verification";
@@ -34,7 +41,8 @@ export type AnyTokenPayload =
   | EmailVerificationPayload
   | PasswordResetPayload
   | MagicLinkPayload
-  | MfaChallengePayload;
+  | MfaChallengePayload
+  | GithubInstallStatePayload;
 
 export interface BaseJwtPayload {
   sub: string;
