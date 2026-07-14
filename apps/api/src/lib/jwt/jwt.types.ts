@@ -101,9 +101,7 @@ export interface JwtTokenPair {
   accessToken: string;
   refreshToken: string;
   tokenType: "Bearer";
-
   expiresIn: number;
-
   accessTokenExpiresAt: Date;
   refreshTokenExpiresAt: Date;
 }

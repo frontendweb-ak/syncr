@@ -44,7 +44,6 @@ export class JwtService {
       ...payload,
       type: "access",
     });
-    console.log("accessToken", accessToken);
 
     const refreshToken = await this.signRefreshToken({
       sub: payload.sub,

@@ -20,13 +20,14 @@ import { organizationController } from "./organization.controller";
 const organizations = new Hono<AppContext>();
 
 organizations.use("*", authMiddleware);
-
 organizations.post(
   "/",
   validate(CreateOrganizationSchema),
   organizationController.create,
 );
+
 organizations.get("/", organizationController.listMine);
+organizations.get("/:organizationId", organizationController.getById);
 organizations.get("/:slug", organizationController.getBySlug);
 
 organizations.get(

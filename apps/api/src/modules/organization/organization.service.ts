@@ -210,6 +210,7 @@ export class OrganizationService extends LoggedService {
 
   async listForUser(userId: string) {
     const rows = await this.memberRepo.listActiveOrgsForUser(userId);
+    console.log("rows", JSON.stringify(rows, null, 2));
     return rows.map(({ member, organization }) => ({
       id: organization.id,
       slug: organization.slug,
@@ -219,7 +220,6 @@ export class OrganizationService extends LoggedService {
       plan: organization.plan,
       status: organization.status,
       isPersonal: organization.isPersonal,
-
       membership: {
         id: member.id,
         status: member.status,

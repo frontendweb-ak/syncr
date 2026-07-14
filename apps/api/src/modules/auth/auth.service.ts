@@ -115,7 +115,7 @@ export class AuthService extends LoggedService {
       const email = input.email.trim().toLowerCase();
       const existing = await s.users.getByEmail(email);
       if (existing) throw Errors.user.emailAlreadyExists();
-      console.log("C", existing);
+
       // email
 
       // 1. create user
@@ -123,14 +123,13 @@ export class AuthService extends LoggedService {
         name: input.name,
         email,
       });
-      console.log("D", user.id);
-      // 2. personal organization
-      const org = await s.orgs.createPersonalOrg({
-        userId: user.id,
-        userName: input.name,
-      });
 
-      console.log("org", org);
+      // 2. personal organization
+       await s.orgs.createPersonalOrg({
+         userId: user.id,
+         userName: input.name,
+       });
+   
 
       // 3. create credentials
       const passwordHash = await this.passwordService.hash(input.password);

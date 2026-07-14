@@ -15,6 +15,13 @@ function makeOrganizationService(c: AppCtx) {
 }
 
 export const organizationController = {
+  async getById(c: AppCtx) {
+    const slug = requireParam(c, "slug");
+    const service = makeOrganizationService(c);
+    const org = await service.getById(slug);
+    return ok(c, org);
+  },
+
   async create(c: AppCtx) {
     const auth = c.get("auth");
     const body = await c.req.json();
