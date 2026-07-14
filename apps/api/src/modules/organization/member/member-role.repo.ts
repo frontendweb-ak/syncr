@@ -51,4 +51,18 @@ export class MemberRoleRepo extends BaseRepo {
 
     return rows.map((r) => r.slug);
   }
+
+  async listForMember(organizationMemberId: string) {
+    return this.db
+      .select({
+        id: roles.id,
+        name: roles.name,
+        slug: roles.slug,
+        priority: roles.priority,
+      })
+      .from(memberRoles)
+      .innerJoin(roles, eq(memberRoles.roleId, roles.id))
+      .where(eq(memberRoles.organizationMemberId, organizationMemberId))
+      .orderBy(roles.priority);
+  }
 }

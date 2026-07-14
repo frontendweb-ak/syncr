@@ -14,4 +14,9 @@ export const APP = {
     avatar: ["image/jpeg", "image/png", "image/webp", "image/heic"],
     evidence: ["application/pdf", "image/jpeg", "image/png"],
   },
+
+  ORG: {
+    BASE_PATH: "/organizations",
+    INVITE_ACCEPT_PATH: "/organizations/invites/accept",
+  },
 } as const;

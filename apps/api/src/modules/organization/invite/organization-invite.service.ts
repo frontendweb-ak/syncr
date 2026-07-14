@@ -4,24 +4,22 @@ import type { EmailService } from "@syncr/notifications";
 import { SYSTEM_ROLE_SLUGS } from "@syncr/types";
 import { createHash, randomBytes } from "node:crypto";
 import type { Logger } from "pino";
-import type { AppConfig } from "../../../config";
+import { APP, type AppConfig } from "../../../config";
 import type { RepoContext } from "../../../core/base/base.repo";
 import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
 import type { JwtService } from "../../../lib";
 import { RoleRepo } from "../../role/role.repo";
+import { UserRepo } from "../../user";
 import { MemberRoleRepo } from "../member/member-role.repo";
 import { OrganizationMemberRepo } from "../member/organization-member.repo";
 import { OrganizationRepo } from "../organization.repo";
 import { OrganizationService } from "../organization.service";
-import { WorkspaceRepo } from "../workspace.repo";
+import { WorkspaceRepo } from "../workspace/workspace.repo";
 import {
   type OrganizationInvite,
   OrganizationInviteRepo,
 } from "./organization-invite.repo";
-
-
-
 
 const INVITE_EXPIRY_DAYS = 7;
 
@@ -38,6 +36,7 @@ export class OrganizationInviteService extends LoggedService {
   private readonly workspaceRepo: WorkspaceRepo;
   private readonly orgService: OrganizationService;
   private readonly email: EmailService;
+  private readonly userRepo: UserRepo;
 
   constructor(
     db: RepoContext,
@@ -55,13 +54,14 @@ export class OrganizationInviteService extends LoggedService {
     this.workspaceRepo = new WorkspaceRepo(db);
     this.orgService = new OrganizationService(db, jwt, config, logger);
     this.email = email;
+    this.userRepo = new UserRepo(db);
   }
 
   private async sendInviteEmail(invite: OrganizationInvite, rawToken: string) {
     const org = await this.orgRepo.findById(invite.organizationId);
     if (!org) return; // shouldn't happen — org FK is NOT NULL — but email is never worth crashing the request over
 
-    const acceptUrl = `${this.config.APP_URL}/invites/accept?token=${rawToken}`;
+    const acceptUrl = `${this.config.APP_URL}${APP.ORG.INVITE_ACCEPT_PATH}?token=${rawToken}`;
 
     // TODO: organizationInviteTemplate doesn't exist in @syncr/notifications
     // yet — it needs the same treatment as verifyEmailTemplate /
@@ -85,14 +85,16 @@ export class OrganizationInviteService extends LoggedService {
     });
   }
 
-
   async create(input: {
     organizationId: string;
     invitedByUserId: string;
     email: string;
     roleId?: string;
   }): Promise<{ invite: OrganizationInvite; rawToken: string }> {
-    await this.orgService.requireOrgManager(input.organizationId, input.invitedByUserId);
+    await this.orgService.requireOrgManager(
+      input.organizationId,
+      input.invitedByUserId,
+    );
 
     const email = input.email.trim().toLowerCase();
 
@@ -115,21 +117,28 @@ export class OrganizationInviteService extends LoggedService {
       // invite ever sent rather than silently updating in place.
       await this.inviteRepo.markRevoked(existingInvite.id);
     }
-
+    let roleId = input.roleId;
     if (input.roleId) {
       const role = await this.roleRepo.findById(input.roleId);
       if (!role) throw Errors.organization.roleNotFound();
+    } else {
+      const memberRole = await this.roleRepo.findSystemBySlug("member");
+      if (!memberRole) throw Errors.organization.roleNotFound();
+
+      roleId = memberRole.id;
     }
 
     const rawToken = randomBytes(32).toString("hex");
     const tokenHash = hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+    );
 
     const invite = await this.inviteRepo.create({
       organizationId: input.organizationId,
       email,
       invitedByUserId: input.invitedByUserId,
-      roleId: input.roleId,
+      roleId,
       tokenHash,
       expiresAt,
     });
@@ -143,7 +152,10 @@ export class OrganizationInviteService extends LoggedService {
     const invite = await this.inviteRepo.findById(inviteId);
     if (!invite) throw Errors.organization.inviteNotFound();
 
-    await this.orgService.requireOrgManager(invite.organizationId, requestingUserId);
+    await this.orgService.requireOrgManager(
+      invite.organizationId,
+      requestingUserId,
+    );
 
     if (invite.status !== "PENDING") {
       throw Errors.organization.inviteNotPending();
@@ -174,7 +186,10 @@ export class OrganizationInviteService extends LoggedService {
     const invite = await this.inviteRepo.findById(inviteId);
     if (!invite) throw Errors.organization.inviteNotFound();
 
-    await this.orgService.requireOrgManager(invite.organizationId, requestingUserId);
+    await this.orgService.requireOrgManager(
+      invite.organizationId,
+      requestingUserId,
+    );
 
     if (invite.status !== "PENDING") {
       return; // idempotent — revoking twice, or revoking an already-accepted invite, is a no-op
@@ -197,11 +212,25 @@ export class OrganizationInviteService extends LoggedService {
   // that's the empty-permission-set trap flagged earlier.
   async accept(rawToken: string, acceptingUserId: string) {
     const tokenHash = hashToken(rawToken);
-    const invite = await this.inviteRepo.findByTokenHash(tokenHash);
 
+    const invite = await this.inviteRepo.findByTokenHash(tokenHash);
     if (!invite) throw Errors.organization.inviteInvalid();
-    if (invite.status !== "PENDING") throw Errors.organization.inviteNotPending();
-    if (invite.expiresAt < new Date()) throw Errors.organization.inviteExpired();
+
+    const user = await this.userRepo.findById(acceptingUserId);
+
+    if (!user) throw Errors.user.notFound();
+
+    const userEmail = user.email.trim().toLowerCase();
+    const inviteEmail = invite.email.trim().toLowerCase();
+
+    if (userEmail !== inviteEmail) {
+      throw Errors.organization.inviteEmailMismatch();
+    }
+
+    if (invite.status !== "PENDING")
+      throw Errors.organization.inviteNotPending();
+    if (invite.expiresAt < new Date())
+      throw Errors.organization.inviteExpired();
 
     return this.withTransaction(async (tx) => {
       const scoped = {
@@ -218,10 +247,9 @@ export class OrganizationInviteService extends LoggedService {
       );
 
       if (member) {
-        if (member.status === "ACTIVE") {
-          throw Errors.organization.alreadyMember();
+        if (member.status !== "ACTIVE") {
+          member = await scoped.memberRepo.activate(member.id);
         }
-        member = await scoped.memberRepo.activate(member.id);
       } else {
         member = await scoped.memberRepo.create({
           organizationId: invite.organizationId,
@@ -263,7 +291,11 @@ export class OrganizationInviteService extends LoggedService {
 
       await scoped.inviteRepo.markAccepted(invite.id, acceptingUserId);
 
-      return { member, organizationId: invite.organizationId, roleSlug: role.slug };
+      return {
+        member,
+        organizationId: invite.organizationId,
+        roleSlug: role.slug,
+      };
     });
   }
 }

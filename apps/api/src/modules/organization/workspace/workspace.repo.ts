@@ -7,8 +7,8 @@
 
 import { workspaceAccess, workspaces } from "@syncr/db";
 import { and, eq, type InferInsertModel } from "drizzle-orm";
-import { BaseRepo } from "../../core/base/base.repo";
-import { Errors } from "../../errors";
+import { BaseRepo } from "../../../core/base/base.repo";
+import { Errors } from "../../../errors";
 
 export class WorkspaceRepo extends BaseRepo {
   async createDefault(input: {
@@ -61,5 +61,16 @@ export class WorkspaceRepo extends BaseRepo {
           workspaceAccess.organizationMemberId,
         ],
       });
+  }
+
+  async listForMember(organizationMemberId: string) {
+    return this.db
+      .select({
+        workspace: workspaces,
+        access: workspaceAccess,
+      })
+      .from(workspaceAccess)
+      .innerJoin(workspaces, eq(workspaceAccess.workspaceId, workspaces.id))
+      .where(eq(workspaceAccess.organizationMemberId, organizationMemberId));
   }
 }

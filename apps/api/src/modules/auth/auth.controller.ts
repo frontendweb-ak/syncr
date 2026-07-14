@@ -42,7 +42,7 @@ export const authController = {
   },
 
   async loginGoogle(c: AppCtx) {
-    const body = await c.req.json();
+  const body = await c.req.json();
     const service = makeAuthService(c);
     const result = await service.loginWithGoogle({
       idToken: body.idToken,

@@ -11,6 +11,8 @@
 import { Hono } from "hono";
 import { Errors } from "../../../../errors";
 import type { AppContext, AppCtx } from "../../../../types/env";
+import { GithubAppService } from "../github.app.service";
+import { ProviderConnectionRepo } from "./provider-connection.repo";
 
 // ─────────────────────────────────────────────────────────────
 // Routes
@@ -48,26 +50,33 @@ install.get("/callback", async (c: AppCtx) => {
   const config = c.get("config");
   const db = c.get("db");
   const logger = c.get("logger");
+  const jwt = c.get("jwt");
 
   const installationId = c.req.query("installation_id");
   const setupAction = c.req.query("setup_action"); // "install" | "update" | "request"
   const state = c.req.query("state");
 
   if (!installationId || !state) {
-    return c.redirect(`${config.APP_URL}/dashboard/integrations?error=missing_params`);
+    return c.redirect(
+      `${config.APP_URL}/dashboard/integrations?error=missing_params`,
+    );
   }
 
   let statePayload;
   try {
-    statePayload = await verifyInstallState(config, state);
+    statePayload = await jwt.verifyGithubInstallStateToken(state);
   } catch {
-    return c.redirect(`${config.APP_URL}/dashboard/integrations?error=invalid_state`);
+    return c.redirect(
+      `${config.APP_URL}/dashboard/integrations?error=invalid_state`,
+    );
   }
 
   if (setupAction === "request") {
     // A non-admin member requested installation — GitHub org owner still
     // has to approve it on GitHub's side. Nothing to link yet.
-    return c.redirect(`${config.APP_URL}/dashboard/integrations?status=pending_approval`);
+    return c.redirect(
+      `${config.APP_URL}/dashboard/integrations?status=pending_approval`,
+    );
   }
 
   const githubApp = new GithubAppService(config);
@@ -85,7 +94,9 @@ install.get("/callback", async (c: AppCtx) => {
     installationId: String(installation.id),
     status: "CONNECTED",
     permissionsSnapshot: installation.permissions,
-    suspendedAt: installation.suspended_at ? new Date(installation.suspended_at) : null,
+    suspendedAt: installation.suspended_at
+      ? new Date(installation.suspended_at)
+      : null,
     uninstalledAt: null,
   });
 
@@ -94,7 +105,9 @@ install.get("/callback", async (c: AppCtx) => {
     "GitHub App installation linked",
   );
 
-  return c.redirect(`${config.APP_URL}/dashboard/integrations?status=connected`);
+  return c.redirect(
+    `${config.APP_URL}/dashboard/integrations?status=connected`,
+  );
 });
 
 export { install as githubInstallRoutes };

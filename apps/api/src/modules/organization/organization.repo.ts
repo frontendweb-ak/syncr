@@ -1,8 +1,9 @@
 // src/modules/organization/organization.repo.ts
 
-import { organizations } from "@syncr/db";
+import { organizationMembers, organizations } from "@syncr/db";
 import {
   and,
+  count,
   eq,
   type InferInsertModel,
   type InferSelectModel,
@@ -84,5 +85,31 @@ export class OrganizationRepo extends BaseRepo {
       .update(organizations)
       .set({ deletedAt: new Date(), status: "SUSPENDED" })
       .where(eq(organizations.id, id));
+  }
+
+  async countMembers(organizationId: string): Promise<number> {
+    const rows = await this.db
+      .select({ count: count() })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.status, "ACTIVE"),
+        ),
+      );
+
+    return Number(rows[0]?.count ?? 0);
+  }
+
+  async transferOwnership(organizationId: string, newOwnerUserId: string) {
+    const rows = await this.db
+      .update(organizations)
+      .set({
+        ownerUserId: newOwnerUserId,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, organizationId))
+      .returning();
+    return this.firstOrThrow(rows, Errors.organization.notFound());
   }
 }

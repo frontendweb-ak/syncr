@@ -91,7 +91,7 @@ export const envSchema = z.object({
   BETTER_AUTH_URL: z.url(),
 
   // github
-  GITHUB_APP_SLUG: "syncr",
+  GITHUB_APP_SLUG: z.string().default("syncr"),
   GITHUB_APP_ID: z.string(),
   GITHUB_APP_WEBHOOK_SECRET: z.string(),
   GITHUB_APP_PRIVATE_KEY: z.string(),

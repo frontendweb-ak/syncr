@@ -11,6 +11,17 @@ import { NotFoundException } from "../not-found.error";
 
 export const workspaceErrors = {
   organization: {
+    inviteEmailMismatch: () =>
+      new ForbiddenException(
+        "This invitation was sent to a different email address. Please sign in with the invited account.",
+        ErrorCode.ORG_INVITE_EMAIL_MISMATCH,
+      ),
+    inviteCreateFailed: () =>
+      new HttpException(
+        500,
+        ErrorCode.ORGANIZATION_CREATE_FAILED,
+        "Organization created failed",
+      ),
     roleNotFound: () =>
       new NotFoundException("Role not found", ErrorCode.ROLE_NOT_FOUND),
     cannotRemoveOwner: () =>

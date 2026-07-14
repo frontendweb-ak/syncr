@@ -18,7 +18,8 @@ import { MemberRoleRepo } from "../rbac/member-role.repo";
 import { RoleRepo } from "../role/role.repo";
 import { OrganizationMemberRepo } from "./member/organization-member.repo";
 import { type Organization, OrganizationRepo } from "./organization.repo";
-import { WorkspaceRepo } from "./workspace.repo";
+import { WorkspaceRepo } from "./workspace/workspace.repo";
+
 
 function slugify(input: string): string {
   return input
@@ -208,7 +209,24 @@ export class OrganizationService extends LoggedService {
   }
 
   async listForUser(userId: string) {
-    return this.memberRepo.listActiveOrgsForUser(userId);
+    const rows = await this.memberRepo.listActiveOrgsForUser(userId);
+    return rows.map(({ member, organization }) => ({
+      id: organization.id,
+      slug: organization.slug,
+      name: organization.name,
+      displayName: organization.displayName,
+      avatarUrl: organization.avatarUrl,
+      plan: organization.plan,
+      status: organization.status,
+      isPersonal: organization.isPersonal,
+
+      membership: {
+        id: member.id,
+        status: member.status,
+        joinedAt: member.joinedAt,
+        isOwner: organization.ownerUserId === userId,
+      },
+    }));
   }
 
   async listMembers(organizationId: string) {
@@ -226,12 +244,10 @@ export class OrganizationService extends LoggedService {
   // exactly why authMiddleware's tokenVersion check exists.
   async getPrimaryRoleSlug(userId: string): Promise<string> {
     const memberships = await this.memberRepo.listActiveOrgsForUser(userId);
+
     const first = memberships[0];
     if (!first) return SYSTEM_ROLE_SLUGS.MEMBER; // no org yet — shouldn't happen post-registration
-
-    const slugs = await this.memberRoleRepo.listSlugsForMember(
-      first.organization_members.id,
-    );
+    const slugs = await this.memberRoleRepo.listSlugsForMember(first.member.id);
     return slugs[0] ?? SYSTEM_ROLE_SLUGS.MEMBER;
   }
 

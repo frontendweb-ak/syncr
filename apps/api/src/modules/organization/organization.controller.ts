@@ -26,7 +26,7 @@ export const organizationController = {
       slug: body.slug,
     });
 
-    return created(c, { organization: org });
+    return created(c, org, "Organization created successfully.");
   },
 
   async listMine(c: AppCtx) {
@@ -35,6 +35,7 @@ export const organizationController = {
     const result = await service.listForUser(auth.sub);
     return ok(c, result);
   },
+
   async update(c: AppCtx) {
     const auth = c.get("auth");
     const id = requireParam(c, "id");

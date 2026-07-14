@@ -14,8 +14,8 @@ export const CreateOrganizationSchema = z.object({
 export type CreateOrganizationInput = z.infer<typeof CreateOrganizationSchema>;
 
 export const CreateInviteSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
-  roleId: z.string().uuid().optional(),
+  email: z.email().trim().toLowerCase(),
+  roleId: z.uuid().optional(),
 });
 export type CreateInviteInput = z.infer<typeof CreateInviteSchema>;
 

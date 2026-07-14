@@ -31,14 +31,7 @@ export const organizationInviteController = {
     // rawToken is intentionally NOT returned here — it only ever goes
     // out via the invite email, same principle as the API key secret
     // appearing in exactly one place.
-    return created(c, {
-      invite: {
-        id: invite.id,
-        email: invite.email,
-        status: invite.status,
-        expiresAt: invite.expiresAt,
-      },
-    });
+    return created(c, invite, "Invitation sent");
   },
 
   async list(c: AppCtx) {
@@ -87,7 +80,7 @@ export const organizationInviteController = {
   async accept(c: AppCtx) {
     const auth = c.get("auth");
     const body = await c.req.json();
-
+console.log("BODY", body);
     const service = makeInviteService(c);
     const result = await service.accept(body.token, auth.sub);
 

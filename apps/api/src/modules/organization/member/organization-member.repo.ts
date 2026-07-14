@@ -3,6 +3,7 @@
 import { organizationMembers, organizations, users } from "@syncr/db";
 import {
   and,
+  count,
   eq,
   type InferInsertModel,
   type InferSelectModel,
@@ -44,11 +45,14 @@ export class OrganizationMemberRepo extends BaseRepo {
    * on: is this user an ACTIVE member of this org? Called from the new
    * orgMiddleware below, not just from organization.service.ts directly.
    */
-  async isActiveMember(organizationId: string, userId: string): Promise<boolean> {
+  async isActiveMember(
+    organizationId: string,
+    userId: string,
+  ): Promise<boolean> {
     const member = await this.findByOrgAndUser(organizationId, userId);
     return member?.status === "ACTIVE";
   }
- 
+
   async findById(id: string) {
     const rows = await this.db
       .select()
@@ -76,7 +80,10 @@ export class OrganizationMemberRepo extends BaseRepo {
   // this for, never the bare membership row.
   async listActiveOrgsForUser(userId: string) {
     return this.db
-      .select()
+      .select({
+        member: organizationMembers,
+        organization: organizations,
+      })
       .from(organizationMembers)
       .innerJoin(
         organizations,
@@ -116,5 +123,35 @@ export class OrganizationMemberRepo extends BaseRepo {
       .update(organizationMembers)
       .set({ status: "REMOVED", removedAt: new Date(), updatedAt: new Date() })
       .where(eq(organizationMembers.id, id));
+  }
+
+  async findActiveByOrgAndUser(organizationId: string, userId: string) {
+    const rows = await this.db
+      .select()
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.userId, userId),
+          eq(organizationMembers.status, "ACTIVE"),
+        ),
+      )
+      .limit(1);
+
+    return this.first(rows);
+  }
+
+  async countActiveMembers(organizationId: string): Promise<number> {
+    const rows = await this.db
+      .select({ count: count() })
+      .from(organizationMembers)
+      .where(
+        and(
+          eq(organizationMembers.organizationId, organizationId),
+          eq(organizationMembers.status, "ACTIVE"),
+        ),
+      );
+
+    return Number(rows[0]?.count ?? 0);
   }
 }

@@ -26,8 +26,8 @@ export function ok<T>(
   return c.json(body, status);
 }
 
-export function created<T>(c: AppCtx, data: T) {
-  return ok(c, data, 201);
+export function created<T>(c: AppCtx, data: T, message: string = "") {
+  return ok(c, data, 201, message);
 }
 
 export function noContent(c: AppCtx) {
