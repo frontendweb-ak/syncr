@@ -80,7 +80,7 @@ export const organizationInviteController = {
   async accept(c: AppCtx) {
     const auth = c.get("auth");
     const body = await c.req.json();
-console.log("BODY", body);
+    console.log("BODY", body);
     const service = makeInviteService(c);
     const result = await service.accept(body.token, auth.sub);
 
@@ -88,5 +88,24 @@ console.log("BODY", body);
       organizationId: result.organizationId,
       role: result.roleSlug,
     });
+  },
+
+  async decline(c: AppCtx) {
+    const body = await c.req.json();
+    const service = makeInviteService(c);
+    await service.decline(body.token);
+
+    return ok(c, {
+      declined: true,
+    });
+  },
+
+  async preview(c: AppCtx) {
+    const token = requireParam(c, "token");
+    console.log("RAW TOKEN:", token);
+    const service = makeInviteService(c);
+    const invite = await service.preview(token);
+
+    return ok(c, invite, 200, "Organization preview data");
   },
 };

@@ -173,7 +173,11 @@ export class OrganizationInviteService extends LoggedService {
     // send no email at all.
     const rawToken = randomBytes(32).toString("hex");
     const tokenHash = hashToken(rawToken);
-
+    console.log({
+      action: "RESEND",
+      rawToken,
+      tokenHash,
+    });
     await this.inviteRepo.recordResend(inviteId);
     const updated = await this.inviteRepo.updateTokenHash(inviteId, tokenHash);
 
@@ -297,5 +301,57 @@ export class OrganizationInviteService extends LoggedService {
         roleSlug: role.slug,
       };
     });
+  }
+  async decline(rawToken: string): Promise<void> {
+    const tokenHash = hashToken(rawToken);
+
+    const invite = await this.inviteRepo.findByTokenHash(tokenHash);
+
+    if (!invite) {
+      throw Errors.organization.inviteInvalid();
+    }
+
+    if (invite.status !== "PENDING") {
+      throw Errors.organization.inviteNotPending();
+    }
+
+    if (invite.expiresAt < new Date()) {
+      throw Errors.organization.inviteExpired();
+    }
+
+    await this.inviteRepo.markDeclined(invite.id);
+  }
+
+  async preview(rawToken: string) {
+    const tokenHash = hashToken(rawToken);
+    console.log({
+      rawToken,
+      tokenHash,
+    });
+    const result = await this.inviteRepo.findPreviewByTokenHash(tokenHash);
+    if (!result) {
+      throw Errors.organization.inviteInvalid();
+    }
+
+    const { invite, organization, inviter, role } = result;
+
+    if (invite.status !== "PENDING") {
+      throw Errors.organization.inviteNotPending();
+    }
+
+    if (invite.expiresAt < new Date()) {
+      throw Errors.organization.inviteExpired();
+    }
+
+    return {
+      organization,
+      inviter,
+      role,
+      invitedEmail: invite.email,
+      expiresAt: invite.expiresAt,
+      message: invite.message,
+      status: invite.status,
+      hasAccount: !!(await this.userRepo.findByEmail(invite.email)),
+    };
   }
 }

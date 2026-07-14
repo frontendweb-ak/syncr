@@ -27,7 +27,7 @@ organizations.post(
 );
 
 organizations.get("/", organizationController.listMine);
-organizations.get("/:organizationId", organizationController.getById);
+// organizations.get("/:organizationId", organizationController.getById);
 organizations.get("/:slug", organizationController.getBySlug);
 
 organizations.get(
@@ -39,12 +39,17 @@ organizations.delete(
   organizationController.removeMember,
 );
 
+
+// # Organization owner (authenticated)
+
 organizations.post(
   "/:organizationId/invites",
   rateLimitMiddleware("ORG_INVITE_CREATE"),
   validate(CreateInviteSchema),
   organizationInviteController.create,
 );
+
+
 organizations.get(
   "/:organizationId/invites",
   organizationInviteController.list,
@@ -60,6 +65,7 @@ organizations.delete(
 );
 
 // Not org-scoped in the URL — see note in organization-invite.controller.ts
+organizations.get("/invites/:token", organizationInviteController.preview);
 organizations.post(
   "/invites/accept",
   validate(AcceptInviteSchema),

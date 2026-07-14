@@ -307,4 +307,5 @@ export class OrganizationService extends LoggedService {
     await this.memberRoleRepo.revokeAll(memberId);
     await this.memberRepo.remove(memberId);
   }
+
 }

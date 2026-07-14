@@ -1,6 +1,6 @@
 // src/modules/organization/organization-invite.repo.ts
 
-import { organizationInvites } from "@syncr/db";
+import { organizationInvites, organizations, roles, users } from "@syncr/db";
 import {
   and,
   eq,
@@ -124,5 +124,51 @@ export class OrganizationInviteRepo extends BaseRepo {
         updatedAt: new Date(),
       })
       .where(eq(organizationInvites.id, id));
+  }
+
+  async markDeclined(id: string) {
+    const [invite] = await this.db
+      .update(organizationInvites)
+      .set({
+        status: "DECLINED",
+        updatedAt: new Date(),
+      })
+      .where(eq(organizationInvites.id, id))
+      .returning();
+
+    return invite;
+  }
+
+  async findPreviewByTokenHash(tokenHash: string) {
+    const [row] = await this.db
+      .select({
+        invite: organizationInvites,
+        organization: {
+          id: organizations.id,
+          name: organizations.name,
+          slug: organizations.slug,
+          avatarUrl: organizations.avatarUrl,
+        },
+        inviter: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+        },
+        role: {
+          id: roles.id,
+          name: roles.name,
+          slug: roles.slug,
+        },
+      })
+      .from(organizationInvites)
+      .innerJoin(
+        organizations,
+        eq(organizationInvites.organizationId, organizations.id),
+      )
+      .innerJoin(users, eq(organizationInvites.invitedByUserId, users.id))
+      .leftJoin(roles, eq(organizationInvites.roleId, roles.id))
+      .where(eq(organizationInvites.tokenHash, tokenHash));
+
+    return row;
   }
 }
