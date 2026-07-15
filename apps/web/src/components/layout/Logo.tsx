@@ -1,20 +1,25 @@
+import { cn } from "@/utils";
 import Image from "next/image";
 
 type LogoProps = {
   size?: number;
   className?: string;
+  href?: string;
 };
 
-export function Logo({ size = 200, className }: LogoProps) {
+export function Logo({ href = "/", size = 120, className }: LogoProps) {
   return (
-    <div className="flex flex-col items-center gap-4">
+    <a
+      href={href}
+      className={cn("flex flex-col items-center gap-4", className)}
+    >
       <Image
         src="/images/logo.png"
         alt="AIM emblem"
-        width={200}
-        height={200}
+        width={size}
+        height={100}
         priority
       />
-    </div>
+    </a>
   );
 }
