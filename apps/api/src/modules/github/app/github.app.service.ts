@@ -18,23 +18,20 @@
 //                                 webhook-signature.ts to verify deliveries
 //   GITHUB_APP_SLUG            - the App's URL slug, e.g. "syncr-dev"
 
+import type { InstallationToken } from "@syncr/types";
 import { importPKCS8, SignJWT } from "jose";
-import type { AppConfig } from "../../../config";
+import type { Logger } from "pino";
+import { type AppConfig, OAUTH } from "../../../config";
+import type { RepoContext } from "../../../core/base/base.repo";
+import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
-
-interface InstallationToken {
-  token: string;
-  expiresAt: Date;
-  permissions: Record<string, string>;
-  repositorySelection: "all" | "selected";
-}
+import type { JwtService } from "../../../lib";
 
 const GITHUB_API = "https://api.github.com";
 // Refresh 2 minutes before actual expiry so an in-flight request never
 // gets caught using a token that expires mid-call.
-const REFRESH_MARGIN_MS = 2 * 60 * 1000;
 
-export class GithubAppService {
+export class GithubAppService extends LoggedService {
   // In-memory per-isolate cache. On Workers this means a cold isolate
   // mints a fresh token on its first call — acceptable (installation
   // tokens are cheap to mint, GitHub's limit is generous), NOT a
@@ -44,7 +41,14 @@ export class GithubAppService {
   // directly.
   private tokenCache = new Map<string, InstallationToken>();
 
-  constructor(private readonly config: AppConfig) {}
+  constructor(
+    db: RepoContext,
+    jwt: JwtService,
+    config: AppConfig,
+    logger?: Logger,
+  ) {
+    super(db, jwt, config, logger);
+  }
 
   /**
    * Signs a short-lived JWT identifying THIS APP (not an installation).
@@ -70,7 +74,10 @@ export class GithubAppService {
    */
   async getInstallationToken(installationId: string): Promise<string> {
     const cached = this.tokenCache.get(installationId);
-    if (cached && cached.expiresAt.getTime() - REFRESH_MARGIN_MS > Date.now()) {
+    if (
+      cached &&
+      cached.expiresAt.getTime() - OAUTH.GITHUB.REFRESH_MARGIN_MS > Date.now()
+    ) {
       return cached.token;
     }
 

@@ -9,20 +9,10 @@
 // "this.repo does raw queries" shape your CredentialRepo etc. imply).
 
 import { providerConnections } from "@syncr/db/schema"; // adjust import path to your schema module
+import type { UpsertProviderConnectionInput } from "@syncr/types";
 import { and, eq, type InferSelectModel } from "drizzle-orm";
 import type { RepoContext } from "../../../../core/base/base.repo";
 
-export interface UpsertProviderConnectionInput {
-  organizationId: string;
-  provider: "GITHUB" | "GITLAB" | "BITBUCKET" | "AZURE_DEVOPS";
-  accountId: string;
-  accountName: string;
-  installationId: string;
-  status: "CONNECTED" | "DISCONNECTED" | "EXPIRED";
-  permissionsSnapshot: Record<string, string>;
-  suspendedAt: Date | null;
-  uninstalledAt: Date | null;
-}
 
 export type ProviderConnection = InferSelectModel<typeof providerConnections>;
 export type NewProviderConnection = InferSelectModel<

@@ -10,7 +10,7 @@ export type TokenType =
   | "github_install_state";
 
 export interface GithubInstallStatePayload {
-  sub: string; // userId
+  userId: string; // userId
   organizationId: string;
   type: "github_install_state";
 }

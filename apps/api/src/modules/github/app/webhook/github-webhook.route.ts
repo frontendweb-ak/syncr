@@ -13,6 +13,7 @@
 
 import { Hono } from "hono";
 import type { RepoContext } from "../../../../core/base/base.repo";
+import { authMiddleware } from "../../../../middleware/auth";
 import type { AppContext, AppCtx } from "../../../../types/env";
 import { ProviderConnectionRepo } from "../install/provider-connection.repo";
 import { GithubWebhookEventRepo } from "./github-webhook-event.repo";
@@ -31,6 +32,8 @@ const webhook = new Hono<AppContext>();
  * volume doesn't yet justify a queue — revisit if installation count
  * grows enough that this becomes a request-time bottleneck.
  */
+
+webhook.use("*", authMiddleware);
 webhook.post("/github", async (c: AppCtx) => {
   const config = c.get("config");
   const db = c.get("db");
@@ -154,3 +157,4 @@ async function dispatchEvent(
 }
 
 export { webhook as githubWebhookRoutes };
+

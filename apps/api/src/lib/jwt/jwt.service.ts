@@ -342,7 +342,7 @@ export class JwtService {
       }
 
       return {
-        sub: payload.sub,
+        userId: payload.sub,
         organizationId: payload.organizationId as string,
         type: "github_install_state",
       };

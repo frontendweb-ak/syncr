@@ -1,15 +1,10 @@
 // src/modules/github/webhook/github-webhook-event.repo.ts
 
 import { githubWebhookEvents } from "@syncr/db/schema"; // adjust import path to your schema module
+import type { CreateWebhookEventInput } from "@syncr/types";
 import { eq } from "drizzle-orm";
 import type { RepoContext } from "../../../../core/base/base.repo";
 
-export interface CreateWebhookEventInput {
-  deliveryId: string;
-  event: string;
-  payload: unknown;
-  providerConnectionId: string | null;
-}
 
 export class GithubWebhookEventRepo {
   constructor(private readonly db: RepoContext) {}

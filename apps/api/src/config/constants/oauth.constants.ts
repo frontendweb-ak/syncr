@@ -6,7 +6,6 @@ export const OAUTH = {
   /* -------------------------------------------------------------------------- */
 
   ENABLED: true,
-
   DEFAULT_REDIRECT_PATH: "/auth/oauth/callback",
 
   STATE: {
@@ -30,11 +29,11 @@ export const OAUTH = {
   /* Supported Providers                                                         */
   /* -------------------------------------------------------------------------- */
 
-  PROVIDERS: {
-    GOOGLE: "google",
-    GITHUB: "github",
-  },
+  PROVIDERS: { GOOGLE: "google", GITHUB: "github" },
 
+  GITHUB: {
+    REFRESH_MARGIN_MS: 2 * 60 * 1000,
+  },
   /* -------------------------------------------------------------------------- */
   /* Google                                                                      */
   /* -------------------------------------------------------------------------- */

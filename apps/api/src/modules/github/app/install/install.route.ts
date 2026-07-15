@@ -10,6 +10,8 @@
 
 import { Hono } from "hono";
 import { Errors } from "../../../../errors";
+import type { GithubInstallStatePayload } from "../../../../lib";
+import { authMiddleware } from "../../../../middleware/auth";
 import type { AppContext, AppCtx } from "../../../../types/env";
 import { GithubAppService } from "../github.app.service";
 import { ProviderConnectionRepo } from "./provider-connection.repo";
@@ -19,7 +21,7 @@ import { ProviderConnectionRepo } from "./provider-connection.repo";
 // ─────────────────────────────────────────────────────────────
 
 const install = new Hono<AppContext>();
-
+install.use("*", authMiddleware);
 /**
  * GET /api/v1/integrations/github/connect
  * Authenticated. Redirects the browser to GitHub's install picker with
@@ -34,7 +36,6 @@ install.get("/connect", async (c: AppCtx) => {
   // elsewhere (you likely already have this pattern for other routes).
   const organizationId = c.req.query("organizationId");
   if (!organizationId) throw Errors.validation.missingField("organizationId");
-
   const state = await jwt.signGithubInstallStateToken(organizationId, auth.sub);
   const url = `https://github.com/apps/${config.GITHUB_APP_SLUG}/installations/new?state=${encodeURIComponent(state)}`;
   return c.redirect(url);
@@ -47,8 +48,8 @@ install.get("/connect", async (c: AppCtx) => {
  * legitimacy, not a session.
  */
 install.get("/callback", async (c: AppCtx) => {
-  const config = c.get("config");
   const db = c.get("db");
+  const config = c.get("config");
   const logger = c.get("logger");
   const jwt = c.get("jwt");
 
@@ -62,7 +63,7 @@ install.get("/callback", async (c: AppCtx) => {
     );
   }
 
-  let statePayload;
+  let statePayload: GithubInstallStatePayload;
   try {
     statePayload = await jwt.verifyGithubInstallStateToken(state);
   } catch {
@@ -79,7 +80,7 @@ install.get("/callback", async (c: AppCtx) => {
     );
   }
 
-  const githubApp = new GithubAppService(config);
+  const githubApp = new GithubAppService(db, jwt, config, logger);
   const installation = await githubApp.getInstallation(installationId);
 
   const repo = new ProviderConnectionRepo(db);

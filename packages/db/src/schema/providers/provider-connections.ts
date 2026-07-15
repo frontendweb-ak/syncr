@@ -30,6 +30,7 @@ export const providerConnections = pgTable(
       .notNull(),
     accessTokenEncrypted: text("access_token_encrypted"),
     refreshTokenEncrypted: text("refresh_token_encrypted"),
+
     expiresAt: timestamp("expires_at", { withTimezone: true }),
     /**
      * Snapshot of granted scopes/permissions
