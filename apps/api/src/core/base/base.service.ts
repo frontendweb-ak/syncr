@@ -13,10 +13,16 @@
 // already built once in app.ts, see middleware/db.ts).
 
 import type { Db, Transaction } from "@syncr/db";
+import type { Logger } from "pino";
+import type { AppConfig } from "../../config";
 import type { RepoContext } from "./base.repo";
 
 export abstract class BaseService {
-  constructor(protected readonly db: RepoContext) {}
+  constructor(
+    protected readonly db: RepoContext,
+    protected readonly config: AppConfig,
+    protected readonly logger?: Logger,
+  ) {}
 
   /**
    * Runs `fn` inside a database transaction, passing the transaction

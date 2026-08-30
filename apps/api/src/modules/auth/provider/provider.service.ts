@@ -1,25 +1,19 @@
 import type { AuthProvider } from "@syncr/types";
 import type { Logger } from "pino";
 import type { AppConfig } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
-import type { JwtService } from "../../../lib";
 import {
   AuthProviderRepo,
   type NewUserAuthProvider,
   type UserAuthProvider,
 } from "./provider.repo";
 
-export class AuthProviderService extends LoggedService {
+export class AuthProviderService extends BaseService {
   private readonly repo: AuthProviderRepo;
-  constructor(
-    db: RepoContext,
-    jwt: JwtService,
-    config: AppConfig,
-    logger?: Logger,
-  ) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger?: Logger) {
+    super(db, config, logger);
     this.repo = new AuthProviderRepo(db);
   }
 

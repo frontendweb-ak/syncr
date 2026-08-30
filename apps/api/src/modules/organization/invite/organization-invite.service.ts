@@ -5,8 +5,8 @@ import { SYSTEM_ROLE_SLUGS } from "@syncr/types";
 import { createHash, randomBytes } from "node:crypto";
 import type { Logger } from "pino";
 import { APP, type AppConfig } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
 import type { JwtService } from "../../../lib";
 import { RoleRepo } from "../../role/role.repo";
@@ -27,7 +27,7 @@ function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-export class OrganizationInviteService extends LoggedService {
+export class OrganizationInviteService extends BaseService {
   private readonly inviteRepo: OrganizationInviteRepo;
   private readonly memberRepo: OrganizationMemberRepo;
   private readonly orgRepo: OrganizationRepo;
@@ -45,14 +45,14 @@ export class OrganizationInviteService extends LoggedService {
     logger: Logger,
     email: EmailService,
   ) {
-    super(db, jwt, config, logger);
+    super(db, config, logger);
     this.inviteRepo = new OrganizationInviteRepo(db);
     this.memberRepo = new OrganizationMemberRepo(db);
     this.orgRepo = new OrganizationRepo(db);
     this.roleRepo = new RoleRepo(db);
     this.memberRoleRepo = new MemberRoleRepo(db);
     this.workspaceRepo = new WorkspaceRepo(db);
-    this.orgService = new OrganizationService(db, jwt, config, logger);
+    this.orgService = new OrganizationService(db, config, logger);
     this.email = email;
     this.userRepo = new UserRepo(db);
   }

@@ -8,9 +8,9 @@ import { AuthService } from "./auth.service";
 function makeAuthService(c: AppCtx) {
   return new AuthService(
     c.get("db"),
-    c.get("jwt"),
     c.get("config"),
     c.get("logger"),
+    c.get("jwt"),
     c.get("email"),
   );
 }
@@ -18,7 +18,6 @@ function makeAuthService(c: AppCtx) {
 export const authController = {
   async register(c: AppCtx) {
     const body = await c.req.json();
-    console.log("HI", body);
     const service = makeAuthService(c);
 
     const result = await service.registerEmail({
@@ -42,7 +41,7 @@ export const authController = {
   },
 
   async loginGoogle(c: AppCtx) {
-  const body = await c.req.json();
+    const body = await c.req.json();
     const service = makeAuthService(c);
     const result = await service.loginWithGoogle({
       idToken: body.idToken,

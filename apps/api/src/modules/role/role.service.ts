@@ -1,25 +1,27 @@
 import type { Logger } from "pino";
 import type { AppConfig } from "../../config";
+import { BaseService } from "../../core/base";
 import type { RepoContext } from "../../core/base/base.repo";
-import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
-import type { JwtService } from "../../lib";
 import { type NewRole, RoleRepo } from "./role.repo";
 
-export class RoleService extends LoggedService {
+export class RoleService extends BaseService {
   private readonly repo: RoleRepo;
 
   constructor(
     db: RepoContext,
-    jwt: JwtService,
+
     config: AppConfig,
     logger: Logger,
   ) {
-    super(db, jwt, config, logger);
+    super(db, config, logger);
     this.repo = new RoleRepo(db);
   }
   async createRole(data: NewRole) {
-    const existing = await this.repo.findBySlug(data.slug, data.organizationId);
+    const existing = await this.repo.findByOrgAndSlug(
+      data.organizationId!,
+      data.slug,
+    );
     if (existing) throw Errors.role.alreadyExists();
     return this.repo.create(data);
   }

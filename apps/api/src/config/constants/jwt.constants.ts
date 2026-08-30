@@ -50,7 +50,7 @@ export const JWT = {
   /* Expiration                                                                  */
   /* -------------------------------------------------------------------------- */
   EXPIRY_SECONDS: {
-    ACCESS: 15 * 60,
+    ACCESS: 25 * 60 * 60,
     REFRESH: 30 * 24 * 60 * 60,
     EMAIL_VERIFICATION: 24 * 60 * 60,
     PASSWORD_RESET: 30 * 60,

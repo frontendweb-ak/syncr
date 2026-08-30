@@ -3,10 +3,8 @@
 import type { Db, Transaction } from "@syncr/db";
 
 export type RepoContext = Db | Transaction;
-
 export abstract class BaseRepo {
   constructor(protected readonly db: RepoContext) {}
-
   protected first<T>(rows: T[]): T | null {
     return rows[0] ?? null;
   }

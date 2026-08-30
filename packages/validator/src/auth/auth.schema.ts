@@ -77,9 +77,7 @@ export const VerifyEmailQuerySchema = z.object({
   token: JwtToken,
 });
 
-export type VerifyEmailQuery = z.infer<
-  typeof VerifyEmailQuerySchema
->;
+export type VerifyEmailQuery = z.infer<typeof VerifyEmailQuerySchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Refresh Token */
@@ -89,9 +87,7 @@ export const RefreshTokenSchema = z.object({
   refreshToken: JwtToken,
 });
 
-export type RefreshTokenInput = z.infer<
-  typeof RefreshTokenSchema
->;
+export type RefreshTokenInput = z.infer<typeof RefreshTokenSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Forgot Password */
@@ -101,9 +97,7 @@ export const ForgotPasswordSchema = z.object({
   email: Email,
 });
 
-export type ForgotPasswordInput = z.infer<
-  typeof ForgotPasswordSchema
->;
+export type ForgotPasswordInput = z.infer<typeof ForgotPasswordSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Reset Password */
@@ -115,17 +109,12 @@ export const ResetPasswordSchema = z
     password: Password,
     confirmPassword: Password,
   })
-  .refine(
-    (data) => data.password === data.confirmPassword,
-    {
-      path: ["confirmPassword"],
-      message: "Passwords do not match",
-    },
-  );
+  .refine((data) => data.password === data.confirmPassword, {
+    path: ["confirmPassword"],
+    message: "Passwords do not match",
+  });
 
-export type ResetPasswordInput = z.infer<
-  typeof ResetPasswordSchema
->;
+export type ResetPasswordInput = z.infer<typeof ResetPasswordSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* MFA Verification */
@@ -136,9 +125,7 @@ export const MfaVerifySchema = z.object({
   code: OtpCode,
 });
 
-export type MfaVerifyInput = z.infer<
-  typeof MfaVerifySchema
->;
+export type MfaVerifyInput = z.infer<typeof MfaVerifySchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Google Login */
@@ -148,10 +135,7 @@ export const GoogleLoginSchema = z.object({
   idToken: JwtToken,
 });
 
-export type GoogleLoginInput = z.infer<
-  typeof GoogleLoginSchema
->;
-
+export type GoogleLoginInput = z.infer<typeof GoogleLoginSchema>;
 
 export const resendVerificationSchema = z.object({
   email: z.email("Invalid email address").trim().toLowerCase(),
@@ -163,9 +147,7 @@ export const MfaEnableConfirmSchema = z.object({
   code: OtpCode,
 });
 
-export type MfaEnableConfirmInput = z.infer<
-  typeof MfaEnableConfirmSchema
->;
+export type MfaEnableConfirmInput = z.infer<typeof MfaEnableConfirmSchema>;
 
 /* -------------------------------------------------------------------------- */
 /* Change Password                                                            */
@@ -205,17 +187,11 @@ export const SetPasswordSchema = z
 
 export type SetPasswordInput = z.infer<typeof SetPasswordSchema>;
 
-
-
 // packages/validator/src/api-key.schema.ts
-
 
 export const CreateApiKeySchema = z.object({
   name: z.string().trim().min(1).max(100),
   description: z.string().trim().max(500).optional(),
-  // Optional expiry in days from creation. Omit = never expires.
-  // Capped at 365 — anything longer, make a new key instead of trusting
-  // a two-year-old secret.
   expiresInDays: z.number().int().min(1).max(365).optional(),
 });
 export type CreateApiKeyInput = z.infer<typeof CreateApiKeySchema>;

@@ -10,16 +10,14 @@
 import { SYSTEM_ROLE_SLUGS } from "@syncr/types";
 import type { Logger } from "pino";
 import type { AppConfig } from "../../config";
+import { BaseService } from "../../core/base";
 import type { RepoContext } from "../../core/base/base.repo";
-import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
-import type { JwtService } from "../../lib";
 import { MemberRoleRepo } from "../rbac/member-role.repo";
 import { RoleRepo } from "../role/role.repo";
 import { OrganizationMemberRepo } from "./member/organization-member.repo";
 import { type Organization, OrganizationRepo } from "./organization.repo";
 import { WorkspaceRepo } from "./workspace/workspace.repo";
-
 
 function slugify(input: string): string {
   return input
@@ -30,20 +28,15 @@ function slugify(input: string): string {
     .slice(0, 48);
 }
 
-export class OrganizationService extends LoggedService {
+export class OrganizationService extends BaseService {
   private readonly orgRepo: OrganizationRepo;
   private readonly memberRepo: OrganizationMemberRepo;
   private readonly workspaceRepo: WorkspaceRepo;
   private readonly roleRepo: RoleRepo;
   private readonly memberRoleRepo: MemberRoleRepo;
 
-  constructor(
-    db: RepoContext,
-    jwt: JwtService,
-    config: AppConfig,
-    logger?: Logger,
-  ) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger?: Logger) {
+    super(db, config, logger);
     this.orgRepo = new OrganizationRepo(db);
     this.memberRepo = new OrganizationMemberRepo(db);
     this.workspaceRepo = new WorkspaceRepo(db);
@@ -113,12 +106,7 @@ export class OrganizationService extends LoggedService {
     }
 
     return this.withTransaction(async (tx) => {
-      const scoped = new OrganizationService(
-        tx,
-        this.jwt,
-        this.config,
-        this.logger,
-      );
+      const scoped = new OrganizationService(tx, this.config, this.logger);
 
       const org = await scoped.orgRepo.create({
         ownerUserId: input.userId,
@@ -307,5 +295,4 @@ export class OrganizationService extends LoggedService {
     await this.memberRoleRepo.revokeAll(memberId);
     await this.memberRepo.remove(memberId);
   }
-
 }

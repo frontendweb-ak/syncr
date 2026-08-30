@@ -5,10 +5,9 @@ import crypto from "node:crypto";
 import type { Logger } from "pino";
 
 import type { AppConfig } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
-import type { JwtService } from "../../../lib";
 import { type ApiKey, ApiKeyRepo, type NewApiKey } from "./api-key.repo";
 
 const KEY_PREFIX = "syncr_live_";
@@ -19,16 +18,11 @@ interface GeneratedKey {
   secretHash: string;
 }
 
-export class ApiKeyService extends LoggedService {
+export class ApiKeyService extends BaseService {
   private readonly repo: ApiKeyRepo;
 
-  constructor(
-    db: RepoContext,
-    jwt: JwtService,
-    config: AppConfig,
-    logger: Logger,
-  ) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger: Logger) {
+    super(db, config, logger);
     this.repo = new ApiKeyRepo(db);
   }
 

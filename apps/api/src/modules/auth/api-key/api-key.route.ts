@@ -22,9 +22,7 @@ import type { AppContext } from "../../../types/env";
 import { apiKeyController } from "./api-key.controller";
 
 const apiKeys = new Hono<AppContext>();
-
 apiKeys.use("*", authMiddleware);
-
 apiKeys.post(
   "/",
   rateLimitMiddleware("API_KEY_CREATE"),

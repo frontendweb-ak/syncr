@@ -9,18 +9,18 @@
 
 import type { Logger } from "pino";
 import type { AppConfig } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
 import { PasswordResetRepo } from "./password-reset.repo"; // TODO: implement, mirrors credential.repo.ts
 
 const RESET_TOKEN_TTL_MINUTES = 60;
 
-export class PasswordResetService extends LoggedService {
+export class PasswordResetService extends BaseService {
   private readonly repo: PasswordResetRepo;
 
-  constructor(db: RepoContext, jwt: any, config: AppConfig, logger: Logger) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger: Logger) {
+    super(db, config, logger);
     this.repo = new PasswordResetRepo(db);
   }
 
@@ -34,7 +34,9 @@ export class PasswordResetService extends LoggedService {
 
     const rawToken = this.generateToken();
     const tokenHash = await this.hashToken(rawToken);
-    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
+    const expiresAt = new Date(
+      Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000,
+    );
 
     await this.repo.create({ userId, tokenHash, status: "PENDING", expiresAt });
 
@@ -71,7 +73,10 @@ export class PasswordResetService extends LoggedService {
   }
 
   private async hashToken(token: string): Promise<string> {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+    const buf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(token),
+    );
     return Array.from(new Uint8Array(buf))
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");

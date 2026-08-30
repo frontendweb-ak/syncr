@@ -22,16 +22,15 @@ import type { InstallationToken } from "@syncr/types";
 import { importPKCS8, SignJWT } from "jose";
 import type { Logger } from "pino";
 import { type AppConfig, OAUTH } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
-import type { JwtService } from "../../../lib";
 
 const GITHUB_API = "https://api.github.com";
 // Refresh 2 minutes before actual expiry so an in-flight request never
 // gets caught using a token that expires mid-call.
 
-export class GithubAppService extends LoggedService {
+export class GithubAppService extends BaseService {
   // In-memory per-isolate cache. On Workers this means a cold isolate
   // mints a fresh token on its first call — acceptable (installation
   // tokens are cheap to mint, GitHub's limit is generous), NOT a
@@ -41,13 +40,8 @@ export class GithubAppService extends LoggedService {
   // directly.
   private tokenCache = new Map<string, InstallationToken>();
 
-  constructor(
-    db: RepoContext,
-    jwt: JwtService,
-    config: AppConfig,
-    logger?: Logger,
-  ) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger?: Logger) {
+    super(db, config, logger);
   }
 
   /**

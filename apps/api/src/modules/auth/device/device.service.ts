@@ -1,21 +1,15 @@
 import type { Logger } from "pino";
 import type { AppConfig } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
-import type { JwtService } from "../../../lib";
 import { type Device, DeviceRepo, type NewDevice } from "./device.repo";
 
-export class DeviceService extends LoggedService {
+export class DeviceService extends BaseService {
   private readonly repo: DeviceRepo;
 
-  constructor(
-    db: RepoContext,
-    jwt: JwtService,
-    config: AppConfig,
-    logger: Logger,
-  ) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger: Logger) {
+    super(db, config, logger);
     this.repo = new DeviceRepo(db);
   }
 
