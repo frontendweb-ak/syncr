@@ -1,9 +1,9 @@
 import * as OTPAuth from "otpauth";
-import { LoggedService } from "../../../core/base/logger.service";
+import { BaseService } from "../../../core/base";
 
 export const PENDING_MFA_TTL_MINUTES = 10;
 
-export class MfaService extends LoggedService {
+export class MfaService extends BaseService {
   /**
    * Generate a new TOTP secret.
    */

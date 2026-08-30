@@ -2,22 +2,21 @@ import type { Logger } from "pino";
 
 import type { AppConfig } from "../../config";
 import type { RepoContext } from "../../core/base/base.repo";
-import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
-import type { JwtService } from "../../lib";
 
+import { BaseService } from "../../core/base";
 import { type NewPermission, PermissionRepo } from "./permission.repo";
 
-export class PermissionService extends LoggedService {
+export class PermissionService extends BaseService {
   private readonly repo: PermissionRepo;
 
   constructor(
     db: RepoContext,
-    jwt: JwtService,
+
     config: AppConfig,
     logger: Logger,
   ) {
-    super(db, jwt, config, logger);
+    super(db, config, logger);
     this.repo = new PermissionRepo(db);
   }
 

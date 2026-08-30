@@ -1,22 +1,21 @@
 import type { UserStatus } from "@syncr/types";
 import type { Logger } from "pino";
 import type { AppConfig } from "../../config";
+import { BaseService } from "../../core/base";
 import type { RepoContext } from "../../core/base/base.repo";
-import { LoggedService } from "../../core/base/logger.service";
 import { Errors } from "../../errors";
-import type { JwtService } from "../../lib";
 import { type NewUser, UserRepo } from "./user.repo";
 
-export class UserService extends LoggedService {
+export class UserService extends BaseService {
   private readonly repo: UserRepo;
 
   constructor(
     db: RepoContext,
-    jwt: JwtService,
+
     config: AppConfig,
     logger?: Logger,
   ) {
-    super(db, jwt, config, logger);
+    super(db, config, logger);
     this.repo = new UserRepo(db);
   }
 

@@ -5,20 +5,13 @@ import type { AppCtx } from "../../../types/env";
 import { ApiKeyService } from "./api-key.service";
 
 function makeApiKeyService(c: AppCtx) {
-  return new ApiKeyService(
-    c.get("db"),
-    c.get("jwt"),
-    c.get("config"),
-    c.get("logger"),
-  );
+  return new ApiKeyService(c.get("db"), c.get("config"), c.get("logger"));
 }
 export const apiKeyController = {
   async create(c: AppCtx) {
     const auth = c.get("auth");
     const body = await c.req.json();
-
     const service = makeApiKeyService(c);
-
     const result = await service.create({
       userId: auth.sub,
       createdBy: auth.sub,

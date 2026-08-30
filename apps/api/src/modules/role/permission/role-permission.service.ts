@@ -1,8 +1,8 @@
-import { LoggedService } from "../../../core/base/logger.service";
+import { BaseService } from "../../../core/base";
 import { Errors } from "../../../errors";
 import { RolePermissionRepo } from "./role-permission.repo";
 
-export class RolePermissionService extends LoggedService {
+export class RolePermissionService extends BaseService {
   private readonly repo = new RolePermissionRepo(this.db);
 
   async assignPermission(roleId: string, permissionId: string) {

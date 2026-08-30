@@ -6,7 +6,6 @@ import { RolePermissionService } from "./role-permission.service";
 function makeRolePermissionService(c: AppCtx) {
   return new RolePermissionService(
     c.get("db"),
-    c.get("jwt"),
     c.get("config"),
     c.get("logger"),
   );

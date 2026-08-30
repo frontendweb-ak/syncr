@@ -1,9 +1,8 @@
 import type { Logger } from "pino";
 import type { AppConfig } from "../../../config";
+import { BaseService } from "../../../core/base";
 import type { RepoContext } from "../../../core/base/base.repo";
-import { LoggedService } from "../../../core/base/logger.service";
 import { Errors } from "../../../errors";
-import type { JwtService } from "../../../lib";
 import { SecurityEventRepo } from "../security";
 import {
   type AuthCredential,
@@ -11,17 +10,12 @@ import {
   type NewAuthCredential,
 } from "./credential.repo";
 
-export class CredentialService extends LoggedService {
+export class CredentialService extends BaseService {
   private readonly repo: CredentialRepo;
   private readonly securityEventRepo: SecurityEventRepo;
 
-  constructor(
-    db: RepoContext,
-    jwt: JwtService,
-    config: AppConfig,
-    logger?: Logger,
-  ) {
-    super(db, jwt, config, logger);
+  constructor(db: RepoContext, config: AppConfig, logger?: Logger) {
+    super(db, config, logger);
     this.repo = new CredentialRepo(db);
     this.securityEventRepo = new SecurityEventRepo(db);
   }

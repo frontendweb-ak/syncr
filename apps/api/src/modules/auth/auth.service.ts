@@ -21,7 +21,8 @@ import type { Logger } from "pino";
 import QRCode from "qrcode";
 import { type AppConfig, AUTH, JWT } from "../../config";
 import type { RepoContext } from "../../core/base/base.repo";
-import { LoggedService } from "../../core/base/logger.service";
+// import { LoggedService } from "../../core/base/logger.service";
+import { BaseService } from "../../core/base";
 import { Errors } from "../../errors";
 import type { JwtService } from "../../lib";
 import { OrganizationService } from "../organization/organization.service";
@@ -40,7 +41,7 @@ import { LoginHistoryService, SecurityEventService } from "./security";
 const LOCKOUT_THRESHOLD = AUTH.MAX_LOGIN_ATTEMPTS ?? 5;
 const LOCKOUT_MINUTES = AUTH.LOCKOUT_MINUTES ?? 15;
 
-export class AuthService extends LoggedService {
+export class AuthService extends BaseService {
   private readonly userService: UserService;
   private readonly credentialService: CredentialService;
 
@@ -51,6 +52,7 @@ export class AuthService extends LoggedService {
   private readonly providerService: AuthProviderService;
   private readonly passwordService: PasswordService;
   private readonly email: EmailService;
+  private readonly jwt: JwtService;
 
   private readonly googleService: GoogleOAuthService;
   private readonly mfaService: MfaService;
@@ -60,48 +62,39 @@ export class AuthService extends LoggedService {
 
   constructor(
     db: RepoContext,
-    jwt: JwtService,
     config: AppConfig,
     logger: Logger,
+    jwt: JwtService,
     email: EmailService,
   ) {
-    super(db, jwt, config, logger);
+    super(db, config, logger);
     this.email = email;
+    this.jwt = jwt;
 
     // user
-    this.userService = new UserService(db, jwt, config, logger);
-    this.credentialService = new CredentialService(db, jwt, config, logger);
-    this.deviceService = new DeviceService(db, jwt, config, logger);
+    this.userService = new UserService(db, config, logger);
+    this.credentialService = new CredentialService(db, config, logger);
+    this.deviceService = new DeviceService(db, config, logger);
     this.securityEvents = new SecurityEventService(db);
     this.loginHistory = new LoginHistoryService(db);
     this.passwordService = new PasswordService();
-    this.providerService = new AuthProviderService(db, jwt, config, logger);
+    this.providerService = new AuthProviderService(db, config, logger);
 
     // google
     this.googleService = new GoogleOAuthService(config);
     // mfa
-    this.mfaService = new MfaService(db, jwt, config, logger);
+    this.mfaService = new MfaService(db, config, logger);
     // password
-    this.passwordReset = new PasswordResetService(db, jwt, config, logger);
-    this.orgService = new OrganizationService(db, jwt, config, logger);
+    this.passwordReset = new PasswordResetService(db, config, logger);
+    this.orgService = new OrganizationService(db, config, logger);
   }
 
   private scoped(tx: RepoContext) {
     return {
-      users: new UserService(tx, this.jwt, this.config, this.logger),
-      orgs: new OrganizationService(tx, this.jwt, this.config, this.logger),
-      credentials: new CredentialService(
-        tx,
-        this.jwt,
-        this.config,
-        this.logger,
-      ),
-      providers: new AuthProviderService(
-        tx,
-        this.jwt,
-        this.config,
-        this.logger,
-      ),
+      users: new UserService(tx, this.config, this.logger),
+      orgs: new OrganizationService(tx, this.config, this.logger),
+      credentials: new CredentialService(tx, this.config, this.logger),
+      providers: new AuthProviderService(tx, this.config, this.logger),
     };
   }
 
@@ -125,11 +118,10 @@ export class AuthService extends LoggedService {
       });
 
       // 2. personal organization
-       await s.orgs.createPersonalOrg({
-         userId: user.id,
-         userName: input.name,
-       });
-   
+      await s.orgs.createPersonalOrg({
+        userId: user.id,
+        userName: input.name,
+      });
 
       // 3. create credentials
       const passwordHash = await this.passwordService.hash(input.password);
