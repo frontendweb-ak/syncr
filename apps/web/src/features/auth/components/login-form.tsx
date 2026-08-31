@@ -8,7 +8,11 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/utils";
-
+/**
+ * Login form
+ * @param param0
+ * @returns
+ */
 export function LoginForm({
   className,
   ...props
@@ -53,7 +57,6 @@ export function LoginForm({
             </svg>
             Login with GitHub
           </Button>
-
           <Button variant="outline" type="button" className="w-full gap-3">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
               <title id="github-icon-title">GitHub</title>
