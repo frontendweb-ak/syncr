@@ -33,6 +33,7 @@ auth.post(
   validate(RegisterSchema),
   authController.register,
 );
+
 auth.post(
   "/login",
   rateLimitMiddleware("LOGIN", async (c) => {
@@ -137,4 +138,3 @@ auth.post(
 );
 
 export { auth as authRoutes };
-
